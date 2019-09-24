@@ -1,5 +1,5 @@
 # Activity Log
-**Wk1 23-27 September:**  ([#3] [i3])
+**Wk1 23-27 September:**  [Issue 3](https://github.com/CedricGullentops/Master-Thesis-Pruning-for-Object-Detection/issues/3)
 
 Gepland:
 
@@ -10,8 +10,6 @@ Gepland:
 
 Bereikt:
 
+- Opfrissen werking van convolutionele netwerken en de wiskunde erachter.
+
 Niet-bereikt:
-
-
-
-[i3]: https://github.com/CedricGullentops/Master-Thesis-Pruning-for-Object-Detection/issues/3
