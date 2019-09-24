@@ -9,4 +9,4 @@ Masterproef 2019-2020 over pruning voor object detectie.
 - tweede activiteiten rapport: 2 december.
 
 **Belangrijke links:**
-http://iiw.denayer.be/~eaict/masterproef/masprf.php -- * *Website voor informatie omtrent masterproefdeadlines en inhoud* * 
+http://iiw.denayer.be/~eaict/masterproef/masprf.php --  *Website voor informatie omtrent masterproefdeadlines en inhoud* 
