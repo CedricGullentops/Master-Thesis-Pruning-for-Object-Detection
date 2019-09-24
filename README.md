@@ -1,7 +1,7 @@
 # Master-Thesis-Pruning-for-Object-Detection
 Masterproef 2019-2020 over pruning voor object detectie.
 
-**Deadlines:**
+**Deadlines:**<br/>
 - verslag van de inloopperiode: 9 oktober;
 - eerste activiteiten rapport: moet niet ingediend worden;
 - tussentijds verslag: 25 oktober;
