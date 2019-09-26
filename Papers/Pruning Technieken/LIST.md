@@ -1,6 +1,6 @@
 # Lijst van papers over Pruning technieken 
 
-General:
+**General:**
 
 1) [Deep Compression: Compressing Deep Neural Networks with Pruning, Trained Quantization and Huffman Coding](https://arxiv.org/abs/1510.00149#) 
 
@@ -32,7 +32,7 @@ General:
 
 
 
-Sinds 2019:
+**Sinds 2019:**
 
 15) [Attention Based Pruning for Shift Networks](https://arxiv.org/abs/1905.12300)
 
@@ -52,3 +52,6 @@ Sinds 2019:
 
 ---
 
+**Opmerkingen:**
+
+1)  Algemene paper met vooral statistieken op resultaten van pruning, quantisatie en Huffman. Redenen voor compressie: storage, energy consumption, speedup. Pruning en quantisatie zijn onafhankelijk van elkaar (fig 7, 8). Gewichts vermindering door pruning in % voor VGG-16 en andere. 8% is pruning limiet, hierna vermindering accuraatheid (voor hun technieken). Quantisatie werkt beter op geprunde netwerken. Accuraatheid per type layer tov. # bits voor precisie. Grootste hoeveelheid geheugen zit in FC layers. Een voorbeeld van geen voordeel bij pruning 6.3. Lijst van andere belangrijke papers omtrent pruning!
