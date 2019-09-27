@@ -46,7 +46,7 @@
 
 16) [Centripetal SGD for Pruning Very Deep Convolutional Networks With Complicated Structure](http://openaccess.thecvf.com/content_CVPR_2019/html/Ding_Centripetal_SGD_for_Pruning_Very_Deep_Convolutional_Networks_With_Complicated_CVPR_2019_paper.html)
 
-17) [Variational Convolutional Neural Network Pruning](http://openaccess.thecvf.com/content_CVPR_2019/html/Zhao_Variational_Convolutional_Neural_Network_Pruning_CVPR_2019_paper.html)
+17) [Variational Convolutional Neural Network Pruning](http://openaccess.thecvf.com/content_CVPR_2019/html/Zhao_Variational_Convolutional_Neural_Network_Pruning_CVPR_2019_paper.html) **GELEZEN** --  TECH4
 
 18) [Pruning deep convolutional neural networks for efficient edge computing in condition assessment of infrastructures](https://onlinelibrary.wiley.com/doi/abs/10.1111/mice.12449)
 
@@ -73,3 +73,5 @@
 8) Veel links naar andere papers met pruning technieken! Vooral interessant voor FLOP reductie en het niet gebruiken van sparse netwerken, libraries en hardware. One-shot pruning en hertrainen. Een filter verwijderen verwijdert de bijbehordende feature maps voor alle opeenvolgende lagen. Kleinere filters prunen werkt beter. Elke laag appart getest. Grote hoeveelheid van filters kunnen verwijdert worden zonder verlies in nauwkeurigheid. Meest sensitieve lagen liggen bij de residual blocks waar het aantal feature mappen verandert. Eerste laag van deze residual block verwijderen verlaagt het meeste FLOP.
 
 3) Bevat meerdere pruning criteria en redenen om te prunen! **Zeer goed overzicht.** Lagen met max. pooling zijn belangrijker dan andere. Elke laag heeft feature maps die globaal belangrijk zijn en somige andere die minder belangrijk zijn. => gebalanceerd prunen over alle lagen is het best. Taylor criteria beste nauwkeurigheid en beste relatieve performantie tov. #operaties. Hertrainen tijdens na het prunen verbeterd de nauwkeurigheid enorm.
+
+17) Goede channel prune methode. Hoeft niet hertrained te worden en werkt als stand-alone module dus makkelijk implementeerbaar. Betere perormantie bij dieper modellen (goed voor VGG-16). Behoud accuraatheid na compressie. Meeste channels worden in het midden van het moddel verwijdert, de buitenste zijn meer cruciaal voor image recognition.
