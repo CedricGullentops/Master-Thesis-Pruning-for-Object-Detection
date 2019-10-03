@@ -52,11 +52,11 @@
 
 19) [Collaborative Channel Pruning for Deep Networks](http://proceedings.mlr.press/v97/peng19c.html) **GELEZEN, ZEER GOED** -- TECH 6: CIFAR-10 FLOP's -53% acc 93.3%
 
-20) [Importance Estimation for Neural Network Pruning](http://openaccess.thecvf.com/content_CVPR_2019/html/Molchanov_Importance_Estimation_for_Neural_Network_Pruning_CVPR_2019_paper.html)
+20) [Importance Estimation for Neural Network Pruning](http://openaccess.thecvf.com/content_CVPR_2019/html/Molchanov_Importance_Estimation_for_Neural_Network_Pruning_CVPR_2019_paper.html) **GELEZEN**
 
-21) [Pruning Redundant Neurons and Kernels of Deep Convolutional Neural Networks](https://patents.google.com/patent/US20190122113A1/en)
+21) [Pruning Redundant Neurons and Kernels of Deep Convolutional Neural Networks](https://patents.google.com/patent/US20190122113A1/en) **GELEZEN**
 
-22) [Filter Pruning via Geometric Median for Deep Convolutional Neural Networks Acceleration](http://openaccess.thecvf.com/content_CVPR_2019/html/He_Filter_Pruning_via_Geometric_Median_for_Deep_Convolutional_Neural_Networks_CVPR_2019_paper.html)
+22) [Filter Pruning via Geometric Median for Deep Convolutional Neural Networks Acceleration ](http://openaccess.thecvf.com/content_CVPR_2019/html/He_Filter_Pruning_via_Geometric_Median_for_Deep_Convolutional_Neural_Networks_CVPR_2019_paper.html) **GELEZEN, ZEER GOED** -- TECH 7: CIFAR-10 FLOP's -52.3% acc 93.74, kleine stijging!
 
 ---
 
@@ -87,3 +87,9 @@
 18) Use case van paper 3 over detectie van bruiken voor zwermen van drones. 3 stage pruning, pruning, K-means quantisatie en Huffman coding. De twee laatste zijn puur voor memory. **=> Meerekenen als pruning? -Nee** Er bestaan pruning technieken voor multitasking, interessant voor in MP, link naar paper.  2 Redenen waarom Taylor expansie beter is dan regularisatie methoden.
 
 19) Uitbreiding op paper 3 met benadering van Hessian matrix en linear afhankelijk 0-1 kwadratisch minimalisatie probleem. **TECHNIEK 6** 
+
+20) Vergelijkbare paper als paper 3, referen elkaar als op bijna hetzelfde moment te zijn uitgebracht, met zowel eerste orde als tweede orde Taylor Expansie. Implementatie van Taylor Expansie op **Github Link: **https://github.com/NVlabs/Taylor_pruning.
+
+21) Patent over prunen van deep CNN, zeer algemeen, niet zo interessant. Alle type lagen nog eens opgesomt: CL FC, pooling, non-linearity, normalisation,...
+
+22) Nieuwe methode:  Filter Pruning via Geometric Median (FPGM). Minimaliseer de euclidische afstand naar een punt. Zeer goede resultaten. **TECHNIEK 7**
