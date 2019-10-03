@@ -1,5 +1,3 @@
-
-
 # LOG
 
 **Wk 2: 28 sep - 4 oct**
@@ -14,7 +12,17 @@ Gepland:
 
 Bereikt:
 
+- Inleidingsverslag maken.
+- Opstellen van een lijst van interessante pruning methodes en deze onderzoeken. --focus op pruning van convolutie filters.
+
+Nog bezig: 
+
+- Documentatie van fast.ai lezen.
+- Inleiding schrijven. 
+
 Niet-bereikt:
+
+- Documentatie van Pytorch lezen.
 
 ---
 

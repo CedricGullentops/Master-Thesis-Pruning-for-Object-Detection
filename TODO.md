@@ -8,5 +8,5 @@ fast.ai doornemen
 
 pytorch documentatie doornemen.
 
-inleiding schrijven van mp-tekst
+inleiding beginnen te schrijven van mp-tekst
 
