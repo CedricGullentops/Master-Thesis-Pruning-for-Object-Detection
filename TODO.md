@@ -1,12 +1,8 @@
 # TODO
 
-Papers lezen, met name over channel pruning en convolutie gefocuste pruning
+Opmerkingen inleidingsverslag verbeteren.
 
-Git large File Storage voor alle pdf's van de papers
+Schrijven van eerste stukken van literatuurstudie.
 
-fast.ai doornemen
-
-pytorch documentatie doornemen.
-
-inleiding beginnen te schrijven van mp-tekst
+Paper over pooling lagen doorsturen.
 

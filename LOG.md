@@ -1,5 +1,30 @@
 # LOG
 
+**Wk 3: 5 oct - 12 oct**
+
+Gepland:
+
+- Documentatie van fast.ai lezen. --afmaken
+- Inleiding schrijven. --afmaken
+- Documentatie van PyTorch lezen.
+- Paper over pruning op pooling lagen zoeken en doorsturen.
+- Beginnen met schrijven van literatuurstudie.
+
+Bereikt:
+
+- Inleiding schrijven.
+- Begonnen aan het schrijven van literatuurstudie.
+- Paper over pruning op pooling lagen.
+
+Nog bezig: 
+
+- Documentatie van fast.ai lezen. 
+- Documentatie van fast.ai lezen. -- nog een klein deel
+
+Niet-bereikt:
+
+---
+
 **Wk 2: 28 sep - 4 oct**
 
 Gepland:

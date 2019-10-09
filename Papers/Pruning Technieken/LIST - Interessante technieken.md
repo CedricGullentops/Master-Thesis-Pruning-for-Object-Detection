@@ -8,11 +8,11 @@
 
 => Zeer intuitief en goede resultaten, andere methode dan Taylor Expansie
 
+8) en ook 3) over l1 en l2 regularisatie.
 
+ [Pruning Convolutional Neural Networks for Resource Efficient Inference](https://arxiv.org/abs/1611.06440) 
 
-Hier moet een paper over l2 regularisatie komen.
-
-
+ [Pruning Filters for Efficient ConvNets](https://arxiv.org/abs/1608.08710)
 
 ---
 
