@@ -58,6 +58,12 @@
 
 22) [Filter Pruning via Geometric Median for Deep Convolutional Neural Networks Acceleration ](http://openaccess.thecvf.com/content_CVPR_2019/html/He_Filter_Pruning_via_Geometric_Median_for_Deep_Convolutional_Neural_Networks_CVPR_2019_paper.html) **GELEZEN, ZEER GOED** -- TECH 7: CIFAR-10 FLOP's -52.3% acc 93.74, kleine stijging!
 
+
+
+**Andere papers:**
+
+27) [You Only Look Once: Unified, Real-Time Object Detection](https://arxiv.org/pdf/1506.02640.pdf) Paper over het YOLO netwerk. Heb hier sommige afbeeldingen van.
+
 ---
 
 **Opmerkingen:**

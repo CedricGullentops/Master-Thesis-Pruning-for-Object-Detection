@@ -14,11 +14,11 @@ Bereikt:
 
 - Inleiding schrijven.
 - Begonnen aan het schrijven van literatuurstudie.
-- Paper over pruning op pooling lagen.
+- Paper over pruning op pooling lagen. -> Gaat toch niet, de paper die dit aanhaalde bedoelde  gewoon een pooling laag en had het over prunen van de andere lagen.
 
 Nog bezig: 
 
-- Documentatie van fast.ai lezen. 
+- Documentatie van PyTorch lezen. 
 - Documentatie van fast.ai lezen. -- nog een klein deel
 
 Niet-bereikt:
