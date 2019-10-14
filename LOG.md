@@ -1,5 +1,23 @@
 # LOG
 
+**Wk 4: 13 oct - 19 oct**
+
+Gepland:
+
+- Literatuurstudie afmaken.
+  - Verbeteringen en opmerkingen af tegen ma 14/10.
+  - 2.2 Snoeitechnieken af tegen di avond 15/10.
+  - 2.3 Keuze van technieken af tegen do avond 17/10.
+- Documentatie PuTorch en fast.ai nogmaals doornemen.
+
+Bereikt:
+
+Nog bezig: 
+
+Niet-bereikt:
+
+---
+
 **Wk 3: 5 oct - 12 oct**
 
 Gepland:

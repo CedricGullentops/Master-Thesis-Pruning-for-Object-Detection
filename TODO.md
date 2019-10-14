@@ -1,8 +1,8 @@
 # TODO
+- Laatste paragraaf in 2.1 van mp-tekst moet nog verplaatst worden achter een nieuwe paragraaf van YOLO v2/ v3.
 
-Opmerkingen inleidingsverslag verbeteren.
+- Paragraaf over Single shot detection vs RCNN.
 
-Schrijven van eerste stukken van literatuurstudie.
+- CNN voor objectdetectie als paragraaf 2.2.
 
-Paper over pooling lagen doorsturen.
-
+  
