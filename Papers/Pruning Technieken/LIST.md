@@ -64,6 +64,12 @@
 
 27) [You Only Look Once: Unified, Real-Time Object Detection](https://arxiv.org/pdf/1506.02640.pdf) Paper over het YOLO netwerk. Heb hier sommige afbeeldingen van.
 
+28) [SSD: Single Shot MultiBox Detector](https://arxiv.org/abs/1512.02325) Paper over SSD (Single-Shot MultiBox Detector). 
+
+29) [YOLOv3: An Incremental Improvement](https://arxiv.org/abs/1804.02767) Paper over YOLOv3.
+
+30) [Rich feature hierarchies for accurate object detection and semantic segmentation](https://arxiv.org/abs/1311.2524) Paper over R-CNN.
+
 ---
 
 **Opmerkingen:**
