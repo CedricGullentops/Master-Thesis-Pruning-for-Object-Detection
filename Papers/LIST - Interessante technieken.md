@@ -30,8 +30,6 @@
 
 **Anderen:**
 
-8) [Pruning Filters for Efficient ConvNets](https://arxiv.org/abs/1608.08710) **GELEZEN** --  TECH 1: inference cost VGG-16 -34%, ResNet-110 -38%
-
 2) [Structured Pruning of Deep Convolutional Neural Networks](https://arxiv.org/abs/1512.08571)  **GELEZEN, GOED OVERZICHT** -- TECH 2: netwerkgrootte -75%
 
 17) [Variational Convolutional Neural Network Pruning](http://openaccess.thecvf.com/content_CVPR_2019/html/Zhao_Variational_Convolutional_Neural_Network_Pruning_CVPR_2019_paper.html) **GELEZEN** --  TECH 4: ResNet-110 FLOP's en Parameters  -38%, Channels - 62 %, 93% Acc (Net iets slechter dan 16?)

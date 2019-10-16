@@ -38,6 +38,10 @@
 
 26) [Learning to Prune Filters in Convolutional Neural Networks](https://arxiv.org/pdf/1801.07365.pdf) **ZEKER NOG EENS LEZEN** -- meer praktisch
 
+31) [Pruning backpropagation neural networks using modern stochastic optimisation techniques](https://link.springer.com/article/10.1007/BF01501173) -- Niet beschikbaar
+
+32) [Fast Training of Object Detection Using Stochastic Gradient Descent](https://ieeexplore.ieee.org/abstract/document/5597822) -- TECH 7: Paper over SGD, goed om aan te halen bij Centripetal SGD.
+
 
 
 **Sinds 2019:**
@@ -96,7 +100,7 @@
 
 17) Nog een paper die gebruikt maakt van Taylor expansie.
 
-18) Use case van paper 3 over detectie van bruiken voor zwermen van drones. 3 stage pruning, pruning, K-means quantisatie en Huffman coding. De twee laatste zijn puur voor memory. **=> Meerekenen als pruning? -Nee** Er bestaan pruning technieken voor multitasking, interessant voor in MP, link naar paper.  2 Redenen waarom Taylor expansie beter is dan regularisatie methoden.
+18) Use case van paper 3 over detectie van bruiken door zwermen van drones. 3 stage pruning, pruning, K-means quantisatie en Huffman coding. De twee laatste zijn puur voor memory. **=> Meerekenen als pruning? -Nee** Er bestaan pruning technieken voor multitasking, interessant voor in MP, link naar paper.  2 Redenen waarom Taylor expansie beter is dan regularisatie methoden.
 
 19) Uitbreiding op paper 3 met benadering van Hessian matrix en linear afhankelijk 0-1 kwadratisch minimalisatie probleem. **TECHNIEK 6** 
 
