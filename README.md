@@ -5,7 +5,7 @@ Masterproef 2019-2020 over pruning voor object detectie.
 - verslag van de inloopperiode: 9 oktober;
 - eerste activiteiten rapport: moet niet ingediend worden;
 - tussentijds verslag: 25 oktober;
-- tussentijdse presentatie: in de week van 4 tot 8 november;
+- tussentijdse presentatie: 13 november;
 - tweede activiteiten rapport: 2 december.
 
 **Belangrijke links:** <br/>
