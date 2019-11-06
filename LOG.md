@@ -1,5 +1,62 @@
 # LOG
 
+**Wk 7: 3 - 9 nov**
+
+Gepland:
+
+- Werkomgeving inorde.
+- Eerste implementatie pruning.
+
+Bereikt:
+
+-  Werkomgeving inorde.
+
+Nog bezig: 
+
+- Eerste implementatie pruning.
+
+Niet-bereikt:
+
+---
+
+**Wk 6: 27 oct - 2 nov**
+
+Gepland:
+
+- Maken van omgeving met docker.
+- Beginnen aan implementatie.
+
+Bereikt:
+
+- Dockeromgeving.
+
+Nog bezig: 
+
+- Beginnen aan implementatie: development omgeving op windows werkt niet, development omgeving op ubuntu gemaakt.
+
+Niet-bereikt:
+
+---
+
+**Wk 5: 20 oct - 26 oct**
+
+Gepland:
+
+- Literatuurstudie afmaken: laatste aanpassingen.
+- Beginnen aan implementatie.
+
+Bereikt:
+
+- Literatuurstudie afmaken: laatste aanpassingen.
+
+Nog bezig: 
+
+- Beginnen aan implementatie.
+
+Niet-bereikt:
+
+---
+
 **Wk 4: 13 oct - 19 oct**
 
 Gepland:
@@ -8,9 +65,15 @@ Gepland:
   - Verbeteringen en opmerkingen af tegen ma 14/10.
   - 2.2 Snoeitechnieken af tegen di avond 15/10.
   - 2.3 Keuze van technieken af tegen do avond 17/10.
-- Documentatie PuTorch en fast.ai nogmaals doornemen.
+- Documentatie PyTorch en fast.ai nogmaals doornemen.
 
 Bereikt:
+
+- Literatuurstudie afmaken.
+  - Verbeteringen en opmerkingen af tegen ma 14/10.
+  - 2.2 Snoeitechnieken af tegen di avond 15/10.
+  - 2.3 Keuze van technieken af tegen do avond 17/10.
+- Documentatie PyTorch en fast.ai nogmaals doornemen.
 
 Nog bezig: 
 
