@@ -9,4 +9,4 @@ RUN apt-get update && \
 COPY Code /usr/Code
 
 RUN cd Code && \
-	python l2prune.py 95.0 30.0 -n Yolo -m hard
+	python Pruning.py 30.0
