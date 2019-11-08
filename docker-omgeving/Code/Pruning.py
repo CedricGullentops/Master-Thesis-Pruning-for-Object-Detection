@@ -12,8 +12,7 @@ import argparse
 import brambox as bb
 import lightnet as ln
 from utils import getnet,getlossfunction,isconvoltionlayer
-from softprune import softprune
-from l2prune import *
+from L2prune import L2prune
 
 # Settings
 ln.logger.setConsoleLevel('ERROR')  # Only show error log messages
