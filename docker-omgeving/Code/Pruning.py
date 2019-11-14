@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 import argparse
 import brambox as bb
 import lightnet as ln
-from utils import getnet,getlossfunction,isconvoltionlayer
+from change import getnet, getlossfunction
 from L2prune import L2prune
 
 # Settings
@@ -34,8 +34,6 @@ class Pruning:
             else:
                 print('{k} attribute already exists, not overwriting with `{v}`')
 
-        self.convolutionlayerlist = self.findconvolutionallayers()
-
 
     def __call__(self):
         if self.method == 'l2prune':
@@ -50,15 +48,6 @@ class Pruning:
         else:
             'No valid method was chosen, exiting'
             quit()
-
-
-    def findconvolutionallayers(self):
-        convolutionlayerlist = []
-        for sequential in range(len(self.model.layers)):
-            for layer in range(len(self.model.layers[sequential])):
-                if isconvoltionlayer(self.model, sequential, layer):
-                    convolutionlayerlist.append((sequential,layer))
-        return convolutionlayerlist
 
 
 if __name__ == '__main__':
@@ -76,8 +65,8 @@ if __name__ == '__main__':
                         choices=['RegionLoss'], default='RegionLoss')
     parser.add_argument('-n', '--network', help='Pretrained network to prune',
                         choices=['Yolo', 'Yolt', 'DYolo', 'TinyYolo', 'MobileNetYolo'], default='Yolo')
-    parser.add_argument('-m', '--manner', choices=['hard', 'soft', 'combination'], default='hard',
-                        help='The manner in which to prune: soft, hard or a combination of both')
+    parser.add_argument('-m', '--manner', choices=['hard', 'soft'], default='hard',
+                        help='The manner in which to prune: soft or hard')
     parser.add_argument('-o', '--optimizer', help='Optimizer to use')
     args = parser.parse_args()
 

@@ -1,53 +1,50 @@
 #
-#   Functions that are subject to change when changes are made to LightNet
-#   Note that the argument parser will always have to be updated models or lossfunctions are added
+#   Utility functions
+#   
 
 # Basic imports
 import lightnet as ln
+import torch
+from change import isconvoltionlayer
+import numpy as np
 
 # Settings
 ln.logger.setConsoleLevel('ERROR')  # Only show error log messages
 
 
-# Returns a network 
-def getnet(networkname):
-    if networkname == 'Yolo':
-        return ln.models.Yolo()
-    elif networkname == 'Yolt':
-        return ln.models.Yolt()
-    elif networkname == 'DYolo':
-        return ln.models.DYolo()
-    elif networkname == 'TinyYolo':
-        return ln.models.TinyYolo()
-    elif networkname == 'MobileNetYolo':
-        return ln.models.MobileNetYolo()
-    else:
-        print('An unsupported network was chosen, exiting.')
-        quit()
+# Iterate through a list and prune the given filters
+# ATTENTION: the order of given filters matters
+def hardPruneFilters(model, prunelist):
+    for filter in prunelist:
+        print('Hard pruning filter', filter[1], '@ layer', filter[0])
+        layer = 0
+        for m in model.modules():
+            if isconvoltionlayer(m):
+                if layer != filter[0]:
+                    layer += 1
+                    continue
+                m.weight.data = torch.cat((m.weight.data[:filter[1]], m.weight.data[filter[1]+1:]))
+                m.out_channels -= 1
+                break
+        return
 
 
-# Returns an initialized loss function
-def getlossfunction(lossfunctionname, model):
-    if lossfunctionname == 'RegionLoss':
-        loss = ln.network.loss.RegionLoss(
-            num_classes=model.num_classes,
-            anchors=model.anchors,
-            stride=model.stride
-        )
-        return loss
-    else:
-        print('An unsupported lossfunction was chosen, exiting.')
-        quit()
-
-
-# Test if a layer is a convolution layer
-def isconvoltionlayer(model, sequential, layer):
-    if isinstance(model.layers[sequential][layer], ln.network.layer._darknet.Conv2dBatchReLU):
-        return True
-    elif isinstance(model.layers[sequential][layer], ln.network.layer._mobilenet.Conv2dDepthWise):
-        return True
-    else:
-        return False
+# Iterate through a list and prune the given filters
+# ATTENTION: the order of given filters matters
+def softPruneFilters(model, prunelist):
+    for filter in prunelist:
+        print('Soft pruning filter', filter[1], '@ layer', filter[0])
+        layer = 0
+        for m in model.modules():
+            if isconvoltionlayer(m):
+                if layer != filter[0]:
+                    layer += 1
+                    continue
+                zeros = torch.zeros([1,m.weight.data.shape[1],m.weight.data.shape[2], m.weight.data.shape[3]])
+                tussenstap = torch.cat((m.weight.data[:filter[1]], zeros))
+                m.weight.data = torch.cat((tussenstap, m.weight.data[filter[1]+1:]))
+                break
+        return
 
 
 # Find lowest non-zero value in an array
