@@ -4,7 +4,8 @@ RUN apt-get update && \
     apt-get upgrade -y && \
 	pip install brambox && \
 	pip install matplotlib && \
-	pip install git+https://gitlab.com/eavise/lightnet
+	pip install git+https://gitlab.com/eavise/lightnet  && \
+	pip install tables
 	
 COPY Code /usr/Code
 
