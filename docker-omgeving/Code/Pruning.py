@@ -13,6 +13,7 @@ import brambox as bb
 import lightnet as ln
 from change import getnet, getlossfunction
 from L2prune import L2prune
+from utils import makeDependencyList
 
 # Settings
 ln.logger.setConsoleLevel('ERROR')  # Only show error log messages
@@ -26,6 +27,10 @@ class Pruning:
         self.percentage = percentage
         self.manner = manner
         self.loss = lossfunction
+        self.dependencies = makeDependencyList(self.model)
+        
+        for dependency in self.dependencies:
+            print(dependency)
 
         # Setting kwargs
         for k, v in kwargs.items():

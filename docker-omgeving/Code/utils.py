@@ -96,3 +96,88 @@ def printProgressBar (iteration, total, prefix = '', suffix = '', decimals = 1, 
     # Print New Line on Complete
     if iteration == total: 
         print()
+
+
+# Make a list of dependencies of convolutional layers
+def makeDependencyList(model):
+    randomInput = torch.rand(1, 3, 416, 416)
+    traced_cell = torch.jit.trace(model, randomInput)
+    traced_cell_output = traced_cell.code
+
+    listed_trace = [s.strip() for s in traced_cell_output.splitlines()] # Split trace in lines
+
+    convolutionlist = []
+    index = 1
+    for text in listed_trace:
+        if "torch._convolution" in text: # If line contains a convolution link it to its index
+            layername = text.split(" = ")[0]
+            convolutionlist.append((index, layername)) 
+            index+=1
+
+    dependencylist = []
+    for conv in convolutionlist:
+        dependants = findDependants(conv[1], listed_trace, convolutionlist)
+        dependencylist.append((conv, transformDependants(dependants, convolutionlist)))     
+
+    return dependencylist
+
+
+# Transforms the layer indexes so it is the same as in the Pruning class
+def transformDependants(dependants, convolutionlist):
+    newList = []
+    done = []
+    for dependant in dependants:
+        if dependant in done:
+            continue
+        for conv in convolutionlist:
+            if (dependant == conv[1]):
+                newList.append(conv[0])
+                done.append(dependant)
+    return newList
+
+
+# Split text on multiple different signs
+def splitTextOnSign(text):
+    words = []
+    word = ""
+    for x in text:
+        if x == "(" or x == ")" or x == "." or x == "," or x == " " or x == "]" or x == "[":
+            words.append(word)
+            word=""
+        else:
+            word += x
+    words.append(word)
+    return words
+
+
+# See if a given text contains a word
+def textContainsWord(text, word):
+    words = splitTextOnSign(text)
+    for w in words:
+        if w == word:
+            return True
+    return False
+
+
+ # Find the next convolutionlayer that is dependant of the given layer
+def findConvDependant(layername, listed_trace, convolutionlist, dependants):
+    for conv in convolutionlist:
+        if conv[1] == layername:
+            return conv[1]
+    for text in listed_trace:
+        if "=" in text:
+            substring = text.split(" = ")
+            if textContainsWord(substring[1], layername):
+                dependants.append(findConvDependant(substring[0], listed_trace, convolutionlist, dependants))
+    return
+
+
+# Find the dependants of a given convolutionlayer
+def findDependants(layername, listed_trace, convolutionlist): 
+    dependants = []
+    for text in listed_trace:
+        if "=" in text:
+            substring = text.split(" = ")
+            if textContainsWord(substring[1], layername):
+                findConvDependant(substring[0], listed_trace, convolutionlist, dependants)
+    return dependants

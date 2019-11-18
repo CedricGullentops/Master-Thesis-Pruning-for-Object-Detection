@@ -43,7 +43,7 @@ class L2prune:
         self.pruneamount = int(0.01*self.Pruning.percentage*self.totalfilters)
         print('There are', self.totalfilters , 'filters in convolutional layers, attempting to prune', self.pruneamount, 'filters')
 
-
+        # Prune as long as the conditions aren't met
         while self.prunedfilters < 10: #self.pruneamount:
             printProgressBar(self.prunedfilters, self.pruneamount)
             layer_index = np.argmin(self.values[:, 0])
