@@ -44,33 +44,49 @@ class L2prune:
         print('There are', self.totalfilters , 'filters in convolutional layers, attempting to prune', self.pruneamount, 'filters')
 
         # Prune as long as the conditions aren't met
-        while self.prunedfilters < 10: #self.pruneamount:
+        while self.prunedfilters < self.pruneamount:
             printProgressBar(self.prunedfilters, self.pruneamount)
-            layer_index = np.argmin(self.values[:, 0])
+
+            layer_index = self.findLayerIndex()
             filter_index = int(self.values[layer_index, 1])
+
             prunetuple = (layer_index, filter_index)
             prunelist = [prunetuple]
+
             if self.Pruning.manner == 'soft':
                 self.prunelist.append(prunetuple) 
-            hardPruneFilters(self.Pruning.model, prunelist)
+
+            hardPruneFilters(self.Pruning, prunelist)
             self.prunedfilters += 1 
             self.updateNormValues(layer_index)   
-
 
         if self.Pruning.manner == 'soft':
                 softPruneFilters(self.modelcopy, self.prunelist)
                 self.Pruning.model = self.modelcopy
-
 
         # check final amount of filters
         finalcount = 0
         for m in self.Pruning.model.modules():
             if isconvoltionlayer(m):
                 finalcount += m.out_channels
-        print ("The final filter amount after pruning is", finalcount)
+        print ("The final amount of filters after pruning is", finalcount)
         print (self.Pruning.manner ,"pruned", self.prunedfilters,"filters")
 
 
+    # Find the layer with the lowest value that is able to be pruned
+    def findLayerIndex(self):
+        smallestvalue = np.argmax(self.values[:, 1]) # Initiate with highest number
+        smallestindex = 0
+        count = 0
+        for layer in self.values:
+            if layer[0] < smallestvalue and self.Pruning.dependencies[count][2] == True:
+                smallestvalue = layer[0]
+                smallestindex = count
+            count += 1
+        return smallestindex
+
+
+    # Update the norm values in self.values after pruning
     def updateNormValues(self, layer_index):
         count = 0
         for m in self.Pruning.model.modules():
