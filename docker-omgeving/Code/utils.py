@@ -16,7 +16,7 @@ ln.logger.setConsoleLevel('ERROR')  # Only show error log messages
 # ATTENTION: the order of given filters matters
 def hardPruneFilters(Pruning, prunelist):
     for filter in prunelist:
-        print('Hard pruning filter', filter[1], '@ layer', filter[0])
+        #print('Hard pruning filter', filter[1], '@ layer', filter[0])
         layer = 0
         for m in Pruning.model.modules():
             if isconvoltionlayer(m):
@@ -37,7 +37,7 @@ def hardPruneFilters(Pruning, prunelist):
 # ATTENTION: the order of given feature maps matters
 def pruneFeatureMaps(model, prunelist):
     for featuremap in prunelist:
-        print('Hard pruning feature map', featuremap[1], '@ layer', featuremap[0])
+        #print('Hard pruning feature map', featuremap[1], '@ layer', featuremap[0])
         layer = 0
         for m in model.modules():
             if isconvoltionlayer(m):
@@ -54,7 +54,7 @@ def pruneFeatureMaps(model, prunelist):
 # ATTENTION: the order of given filters matters
 def softPruneFilters(model, prunelist):
     for filter in prunelist:
-        print('Soft pruning filter', filter[1], '@ layer', filter[0])
+        #print('Soft pruning filter', filter[1], '@ layer', filter[0])
         layer = 0
         for m in model.modules():
             if isconvoltionlayer(m):

@@ -44,7 +44,7 @@ class L2prune:
         print('There are', self.totalfilters , 'filters in convolutional layers, attempting to prune', self.pruneamount, 'filters')
 
         # Prune as long as the conditions aren't met
-        while self.prunedfilters < 1: #self.pruneamount:
+        while self.prunedfilters < self.pruneamount:
             printProgressBar(self.prunedfilters, self.pruneamount)
 
             layer_index = self.findLayerIndex()
@@ -69,7 +69,7 @@ class L2prune:
         for m in self.Pruning.model.modules():
             if isconvoltionlayer(m):
                 finalcount += m.out_channels
-        print ("The final filter amount after pruning is", finalcount)
+        print ("The final amount of filters after pruning is", finalcount)
         print (self.Pruning.manner ,"pruned", self.prunedfilters,"filters")
 
 
