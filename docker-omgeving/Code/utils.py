@@ -14,17 +14,38 @@ ln.logger.setConsoleLevel('ERROR')  # Only show error log messages
 
 # Iterate through a list and prune the given filters
 # ATTENTION: the order of given filters matters
-def hardPruneFilters(model, prunelist):
+def hardPruneFilters(Pruning, prunelist):
     for filter in prunelist:
         print('Hard pruning filter', filter[1], '@ layer', filter[0])
         layer = 0
-        for m in model.modules():
+        for m in Pruning.model.modules():
             if isconvoltionlayer(m):
                 if layer != filter[0]:
                     layer += 1
                     continue
                 m.weight.data = torch.cat((m.weight.data[:filter[1]], m.weight.data[filter[1]+1:]))
                 m.out_channels -= 1
+                if len(Pruning.dependencies[layer][1]) != 0:
+                    for dependency in Pruning.dependencies[layer][1]:
+                        prunetuple = (dependency, filter[1])
+                        pruneFeatureMaps(Pruning.model, [prunetuple])
+                break
+        return
+
+
+# Iterate through a list and prune the given feature maps
+# ATTENTION: the order of given feature maps matters
+def pruneFeatureMaps(model, prunelist):
+    for featuremap in prunelist:
+        print('Hard pruning feature map', featuremap[1], '@ layer', featuremap[0])
+        layer = 0
+        for m in model.modules():
+            if isconvoltionlayer(m):
+                if layer != featuremap[0]:
+                    layer += 1
+                    continue
+                m.weight.data = torch.cat((m.weight.data[:][:featuremap[1]], m.weight.data[:][featuremap[1]+1:]))
+                m.in_channels -= 1
                 break
         return
 
@@ -47,12 +68,8 @@ def softPruneFilters(model, prunelist):
         return
 
 
-# Find lowest non-zero value in an array
+# Find lowest non-zero value in a non-negative array
 def arg_nonzero_min(a):
-    """
-    nonzero argmin of a non-negative array
-    """
-
     if not a:
         return
 
@@ -117,12 +134,26 @@ def makeDependencyList(model):
     dependencylist = []
     for conv in convolutionlist:
         dependants = findDependants(conv[1], listed_trace, convolutionlist)
-        dependencylist.append((conv, transformDependants(dependants, convolutionlist)))     
+        dependencylist.append([conv, transformDependants(dependants, convolutionlist)])     
+
+    allowedToPrune(dependencylist)
 
     return dependencylist
 
 
-# Transforms the layer indexes so it is the same as in the Pruning class
+# If the dependant is also dependant of another layer you cannot prune in this layer
+def allowedToPrune(dependencylist):
+    for element in dependencylist:
+        element.append(True)
+        for other in dependencylist:
+            if element[0][0] != other[0][0]:
+                for dependant in element[1]:
+                    if dependant in other[1] :
+                        element[2] = False
+                        break
+
+
+# Transforms the layer indexes so it is in the same order as in the Pruning class
 def transformDependants(dependants, convolutionlist):
     newList = []
     done = []

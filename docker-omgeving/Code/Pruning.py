@@ -28,9 +28,6 @@ class Pruning:
         self.manner = manner
         self.loss = lossfunction
         self.dependencies = makeDependencyList(self.model)
-        
-        for dependency in self.dependencies:
-            print(dependency)
 
         # Setting kwargs
         for k, v in kwargs.items():
