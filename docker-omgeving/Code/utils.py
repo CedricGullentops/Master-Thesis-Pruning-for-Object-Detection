@@ -5,7 +5,7 @@
 # Basic imports
 import lightnet as ln
 import torch
-from change import isconvoltionlayer
+from change import isConvolutionLayer
 import numpy as np
 
 # Settings
@@ -19,7 +19,7 @@ def hardPruneFilters(Pruning, prunelist):
         #print('Hard pruning filter', filter[1], '@ layer', filter[0])
         layer = 0
         for m in Pruning.model.modules():
-            if isconvoltionlayer(m):
+            if isConvolutionLayer(m):
                 if layer != filter[0]:
                     layer += 1
                     continue
@@ -40,7 +40,7 @@ def pruneFeatureMaps(model, prunelist):
         #print('Hard pruning feature map', featuremap[1], '@ layer', featuremap[0])
         layer = 0
         for m in model.modules():
-            if isconvoltionlayer(m):
+            if isConvolutionLayer(m):
                 if layer != featuremap[0]:
                     layer += 1
                     continue
@@ -57,7 +57,7 @@ def softPruneFilters(model, prunelist):
         #print('Soft pruning filter', filter[1], '@ layer', filter[0])
         layer = 0
         for m in model.modules():
-            if isconvoltionlayer(m):
+            if isConvolutionLayer(m):
                 if layer != filter[0]:
                     layer += 1
                     continue

@@ -7,7 +7,7 @@ import lightnet as ln
 import torch
 import numpy as np
 from utils import arg_nonzero_min, printProgressBar, hardPruneFilters, softPruneFilters
-from change import isconvoltionlayer
+from change import isConvolutionLayer
 
 # Settings
 ln.logger.setConsoleLevel('ERROR')  # Only show error log messages
@@ -29,7 +29,7 @@ class L2prune:
         # Calculate the initial norm values and
         # calculate total amount of filters and the amount to prune
         for m in self.Pruning.model.modules():
-            if isconvoltionlayer(m):
+            if isConvolutionLayer(m):
                 self.totalfilters += m.out_channels
                 with torch.no_grad():
                     # Sum of squared values divided by the amount of values
@@ -67,7 +67,7 @@ class L2prune:
         # check final amount of filters
         finalcount = 0
         for m in self.Pruning.model.modules():
-            if isconvoltionlayer(m):
+            if isConvolutionLayer(m):
                 finalcount += m.out_channels
         print ("The final amount of filters after pruning is", finalcount)
         print (self.Pruning.manner ,"pruned", self.prunedfilters,"filters")
@@ -90,7 +90,7 @@ class L2prune:
     def updateNormValues(self, layer_index):
         count = 0
         for m in self.Pruning.model.modules():
-            if isconvoltionlayer(m):
+            if isConvolutionLayer(m):
                 if (count == layer_index):
                     with torch.no_grad():
                         # Sum of squared values divided by the amount of values

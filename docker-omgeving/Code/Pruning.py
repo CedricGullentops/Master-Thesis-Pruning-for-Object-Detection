@@ -11,8 +11,9 @@ import matplotlib.pyplot as plt
 import argparse
 import brambox as bb
 import lightnet as ln
-from change import getnet, getlossfunction
+from change import getNet, getLossFunction
 from L2prune import L2prune
+from GeometricMedian import GeometricMedian
 from utils import makeDependencyList
 
 # Settings
@@ -45,7 +46,7 @@ class Pruning:
             prune = L2prune(self)
             prune()
         if self.method == 'geometricmedian':
-            prune = L2prune(self)
+            prune = GeometricMedian(self)
             prune()
         else:
             'No valid method was chosen, exiting'
@@ -72,8 +73,8 @@ if __name__ == '__main__':
     parser.add_argument('-o', '--optimizer', help='Optimizer to use')
     args = parser.parse_args()
 
-    net = getnet(args.network)
-    lossfunction = getlossfunction(args.loss, net)
+    net = getNet(args.network)
+    lossfunction = getLossFunction(args.loss, net)
 
     # Start pruning
     prune = Pruning(

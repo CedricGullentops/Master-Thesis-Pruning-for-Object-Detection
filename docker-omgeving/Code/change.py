@@ -11,7 +11,7 @@ ln.logger.setConsoleLevel('ERROR')  # Only show error log messages
 
 
 # Returns a network 
-def getnet(networkname):
+def getNet(networkname):
     if networkname == 'Yolo':
         return ln.models.Yolo()
     elif networkname == 'Yolt':
@@ -28,7 +28,7 @@ def getnet(networkname):
 
 
 # Returns an initialized loss function
-def getlossfunction(lossfunctionname, model):
+def getLossFunction(lossfunctionname, model):
     if lossfunctionname == 'RegionLoss':
         loss = ln.network.loss.RegionLoss(
             num_classes=model.num_classes,
@@ -42,7 +42,7 @@ def getlossfunction(lossfunctionname, model):
 
 
 # Test if a layer is a convolution layer
-def isconvoltionlayer(module):
+def isConvolutionLayer(module):
     if isinstance(module, torch.nn.Conv2d):
         return True
     else:
