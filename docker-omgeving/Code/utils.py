@@ -23,14 +23,19 @@ def hardPruneFilters(Pruning, prunelist):
                 if layer != filter[0]:
                     layer += 1
                     continue
+
+                if m.bias is not None:
+                    m.bias.data = torch.cat((m.bias.data[:filter[1]], m.bias.data[filter[1]+1:]))
+
                 m.weight.data = torch.cat((m.weight.data[:filter[1]], m.weight.data[filter[1]+1:]))
                 m.out_channels -= 1
+
                 if len(Pruning.dependencies[layer][1]) != 0:
                     for dependency in Pruning.dependencies[layer][1]:
                         prunetuple = (dependency, filter[1])
                         pruneFeatureMaps(Pruning.model, [prunetuple])
                 break
-        return
+    return
 
 
 # Iterate through a list and prune the given feature maps

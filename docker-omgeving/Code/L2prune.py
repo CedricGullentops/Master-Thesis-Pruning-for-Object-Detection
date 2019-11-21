@@ -26,10 +26,14 @@ class L2prune:
             self.modelcopy = self.Pruning.model
             self.prunelist = []
 
+        filtersperlayer = []
+        filtersperlayerpruned = []
+
         # Calculate the initial norm values and
         # calculate total amount of filters and the amount to prune
         for m in self.Pruning.model.modules():
             if isConvolutionLayer(m):
+                filtersperlayer.append(m.out_channels)
                 self.totalfilters += m.out_channels
                 with torch.no_grad():
                     # Sum of squared values divided by the amount of values
@@ -68,9 +72,14 @@ class L2prune:
         finalcount = 0
         for m in self.Pruning.model.modules():
             if isConvolutionLayer(m):
+                filtersperlayerpruned.append(m.out_channels)
                 finalcount += m.out_channels
         print ("The final amount of filters after pruning is", finalcount)
         print (self.Pruning.manner ,"pruned", self.prunedfilters,"filters")
+        print("Filters before pruning:")
+        print(filtersperlayer)
+        print("Filters after pruning:")
+        print(filtersperlayerpruned)
 
 
     # Find the layer with the lowest value that is able to be pruned
