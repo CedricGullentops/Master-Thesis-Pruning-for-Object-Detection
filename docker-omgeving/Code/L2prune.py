@@ -6,7 +6,7 @@
 import lightnet as ln
 import torch
 import numpy as np
-from utils import arg_nonzero_min, printProgressBar, hardPruneFilters, softPruneFilters
+from utils import arg_nonzero_min, hardPruneFilters, softPruneFilters
 from change import isConvolutionLayer
 
 # Settings
@@ -49,8 +49,6 @@ class L2prune:
 
         # Prune as long as the conditions aren't met
         while self.prunedfilters < self.pruneamount:
-            printProgressBar(self.prunedfilters, self.pruneamount)
-
             layer_index = self.findLayerIndex()
             filter_index = int(self.values[layer_index, 1])
 

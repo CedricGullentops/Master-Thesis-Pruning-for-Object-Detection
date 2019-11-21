@@ -6,7 +6,7 @@
 import lightnet as ln
 import torch
 import numpy as np
-from utils import arg_nonzero_min, printProgressBar, hardPruneFilters, softPruneFilters
+from utils import arg_nonzero_min, hardPruneFilters, softPruneFilters
 from change import isConvolutionLayer
 from scipy.optimize import minimize
 from scipy.spatial.distance import cdist
