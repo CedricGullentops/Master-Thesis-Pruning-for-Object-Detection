@@ -1,5 +1,46 @@
 # LOG
 
+**Wk 9: 17 - 23 nov**
+
+Gepland:
+
+- Maken van een oplosing voor afhankelijkheid tussen vonvolutie lagen.
+- Implementatie van tweede techniek.
+
+Bereikt:
+
+- Maken van een oplosing voor afhankelijkheid tussen vonvolutie lagen.
+- Implementatie van tweede techniek.
+
+Nog bezig: 
+
+- Maken van convig files voor test runs.
+
+Niet-bereikt:
+
+---
+
+**Wk 8: 10 - 16 nov**
+
+Gepland:
+
+- Maken en voorbereiden van tussentijdse presentatie.
+- Implementatie pruning af
+- Zoeken naar oplossing voor afhankelijkheid tussen convolutie lagen.
+
+Bereikt:
+
+- Maken en voorbereiden van tussentijdse presentatie.
+- Implementatie pruning af
+
+Nog bezig: 
+
+- Zoeken naar oplossing voor afhankelijkheid tussen convolutie lagen.
+
+Niet-bereikt:
+
+---
+
 **Wk 7: 3 - 9 nov**
 
 Gepland:
@@ -10,10 +51,9 @@ Gepland:
 Bereikt:
 
 -  Werkomgeving inorde.
+- Eerste implementatie pruning.
 
 Nog bezig: 
-
-- Eerste implementatie pruning.
 
 Niet-bereikt:
 
