@@ -1,3 +1,5 @@
+# Opmerkingen
+
 .state_dict[]
 model.modules()   !!
 toch.nn.conv2d
