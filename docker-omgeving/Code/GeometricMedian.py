@@ -10,6 +10,7 @@ from utils import arg_nonzero_min, printProgressBar, hardPruneFilters, softPrune
 from change import isConvolutionLayer
 from scipy.optimize import minimize
 from scipy.spatial.distance import cdist
+import multiprocessing as mp
 
 # Settings
 ln.logger.setConsoleLevel('ERROR')  # Only show error log messages
@@ -18,7 +19,6 @@ ln.logger.setConsoleLevel('ERROR')  # Only show error log messages
 class GeometricMedian():
     def __init__(self, Pruning):
         self.Pruning = Pruning
-        self.totalfilters = 0
         self.prunedfilters = 0
        
         
@@ -30,33 +30,17 @@ class GeometricMedian():
 
         filtersperlayer = []
         filtersperlayerpruned = []
+        pool = mp.Pool(mp.cpu_count()) # Allows parallelization
 
-        # Calculate the initial norm values and
-        # calculate total amount of filters and the amount to prune
         layer = 0
         for m in self.Pruning.model.modules():
             if isConvolutionLayer(m):
-                self.totalfilters += m.out_channels
                 filtersperlayer.append(m.out_channels)
-                layerAmount = int((self.Pruning.percentage * m.out_channels) / 100.0)
+                layer +=1
 
-                with torch.no_grad():
-                    print("Layer:", layer)
-                    centroid = self.findCentralPoint(m.weight.data)
-
-                    order = self.arrangeFiltersByDistance(m.weight.data, centroid)
-                    toDelete = []
-                    for filter in range(layerAmount):
-                        toDelete.append((layer, order[filter][0]))
-                    toDelete = sorted(toDelete, key=lambda toDelete: toDelete[1], reverse=True)
-                    print("toDelete:", toDelete)
-
-                    if self.Pruning.manner == 'soft':
-                        softPruneFilters(self.Pruning.model, toDelete)
-                    elif self.Pruning.manner == 'hard':
-                        hardPruneFilters(self.Pruning, toDelete)
-                    self.prunedfilters += len(toDelete)
-                    layer+=1
+        for number in range(layer):
+            pool.apply(self.pruneInLayer, args=(number, )) 
+        pool.close()
 
         # check final amount of filters
         finalcount = 0
@@ -70,6 +54,31 @@ class GeometricMedian():
         print(filtersperlayer)
         print("Filters after pruning:")
         print(filtersperlayerpruned)
+
+
+    def pruneInLayer(self, layer):
+        count = 0
+        for m in self.Pruning.model.modules():
+            if isConvolutionLayer(m):
+                if count != layer:
+                    count += 1
+                    continue
+                layerAmount = int((self.Pruning.percentage * m.out_channels) / 100.0)
+                with torch.no_grad():
+                    centroid = self.findCentralPoint(m.weight.data)
+                    order = self.arrangeFiltersByDistance(m.weight.data, centroid)
+                    toDelete = []
+                    for filter in range(layerAmount):
+                        toDelete.append((layer, order[filter][0]))
+                    toDelete = sorted(toDelete, key=lambda toDelete: toDelete[1], reverse=True)
+                    print("Layer", layer, "deleting:", toDelete)
+
+                    if self.Pruning.manner == 'soft':
+                        softPruneFilters(self.Pruning.model, toDelete)
+                    elif self.Pruning.manner == 'hard':
+                        hardPruneFilters(self.Pruning, toDelete)
+                    self.prunedfilters += len(toDelete)
+                return
 
 
     def arrangeFiltersByDistance(self, weights, centroid):
