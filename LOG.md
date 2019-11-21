@@ -4,12 +4,12 @@
 
 Gepland:
 
-- Maken van een oplosing voor afhankelijkheid tussen vonvolutie lagen.
+- Maken van een oplosing voor afhankelijkheid tussen convolutie lagen.
 - Implementatie van tweede techniek.
 
 Bereikt:
 
-- Maken van een oplosing voor afhankelijkheid tussen vonvolutie lagen.
+- Maken van een oplosing voor afhankelijkheid tussen convolutie lagen.
 - Implementatie van tweede techniek.
 
 Nog bezig: 
