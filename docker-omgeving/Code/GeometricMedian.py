@@ -7,7 +7,7 @@ import lightnet as ln
 import torch
 import numpy as np
 from utils import arg_nonzero_min, hardPruneFilters, softPruneFilters
-from change import isConvolutionLayer
+from utils import isConvolutionLayer
 from scipy.optimize import minimize
 from scipy.spatial.distance import cdist
 import multiprocessing as mp
@@ -25,7 +25,7 @@ class GeometricMedian():
     def __call__(self):
         self.values = []
         if (self.Pruning.manner == 'soft'):
-            self.modelcopy = self.Pruning.model
+            self.modelcopy = self.Pruning.params.network
             self.prunelist = []
 
         filtersperlayer = []
@@ -33,7 +33,7 @@ class GeometricMedian():
         pool = mp.Pool(mp.cpu_count()) # Allows parallelization
 
         layer = 0
-        for m in self.Pruning.model.modules():
+        for m in self.Pruning.params.network.modules():
             if isConvolutionLayer(m):
                 filtersperlayer.append(m.out_channels)
                 layer +=1
@@ -44,7 +44,7 @@ class GeometricMedian():
 
         # check final amount of filters
         finalcount = 0
-        for m in self.Pruning.model.modules():
+        for m in self.Pruning.params.network.modules():
             if isConvolutionLayer(m):
                 filtersperlayerpruned.append(m.out_channels)
                 finalcount += m.out_channels
@@ -58,7 +58,7 @@ class GeometricMedian():
 
     def pruneInLayer(self, layer):
         count = 0
-        for m in self.Pruning.model.modules():
+        for m in self.Pruning.params.network.modules():
             if isConvolutionLayer(m):
                 if count != layer:
                     count += 1
@@ -74,7 +74,7 @@ class GeometricMedian():
                     print("Layer", layer, "deleting:", toDelete)
 
                     if self.Pruning.manner == 'soft':
-                        softPruneFilters(self.Pruning.model, toDelete)
+                        softPruneFilters(self.Pruning.params.network, toDelete)
                     elif self.Pruning.manner == 'hard':
                         hardPruneFilters(self.Pruning, toDelete)
                     self.prunedfilters += len(toDelete)

@@ -5,7 +5,6 @@
 # Basic imports
 import lightnet as ln
 import torch
-from change import isConvolutionLayer
 import numpy as np
 
 # Settings
@@ -18,7 +17,27 @@ def hardPruneFilters(Pruning, prunelist):
     for filter in prunelist:
         #print('Hard pruning filter', filter[1], '@ layer', filter[0])
         layer = 0
-        for m in Pruning.model.modules():
+        done = False
+        combinedLayer = 0
+        for m in Pruning.params.network.modules():
+            if isConv2dBatchRelu(m):
+                if (combinedLayer == Pruning.dependencies[filter[0]][3]):
+                    m.out_channels -= 1
+                combinedLayer += 1
+            if done == True:
+                if isBatchNormalizationLayer(m):
+                    m.num_features -= 1
+                    if m.running_mean is not None:
+                        m.running_mean = torch.cat((m.running_mean[:filter[1]], m.running_mean[filter[1]+1:]))
+                    if m.running_var is not None:
+                        m.running_var = torch.cat((m.running_var[:filter[1]], m.running_var[filter[1]+1:]))
+                    if m.weight is not None:
+                        m.weight.data = torch.cat((m.weight.data[:filter[1]], m.weight.data[filter[1]+1:]))
+                    if m.bias.data is not None:
+                        m.bias.data = torch.cat((m.bias.data[:filter[1]], m.bias.data[filter[1]+1:]))
+                    break
+                else:
+                    break
             if isConvolutionLayer(m):
                 if layer != filter[0]:
                     layer += 1
@@ -33,23 +52,28 @@ def hardPruneFilters(Pruning, prunelist):
                 if len(Pruning.dependencies[layer][1]) != 0:
                     for dependency in Pruning.dependencies[layer][1]:
                         prunetuple = (dependency, filter[1])
-                        pruneFeatureMaps(Pruning.model, [prunetuple])
-                break
+                        pruneFeatureMaps(Pruning, [prunetuple])
+                done = True
     return
 
 
 # Iterate through a list and prune the given feature maps
 # ATTENTION: the order of given feature maps matters
-def pruneFeatureMaps(model, prunelist):
+def pruneFeatureMaps(Pruning, prunelist):
     for featuremap in prunelist:
         #print('Hard pruning feature map', featuremap[1], '@ layer', featuremap[0])
         layer = 0
-        for m in model.modules():
+        combinedLayer = 0
+        for m in Pruning.params.network.modules():
+            if isConv2dBatchRelu(m):
+                if (combinedLayer == Pruning.dependencies[featuremap[0]][3]):
+                    m.in_channels -= 1
+                combinedLayer += 1
             if isConvolutionLayer(m):
                 if layer != featuremap[0]:
                     layer += 1
                     continue
-                m.weight.data = torch.cat((m.weight.data[:][:featuremap[1]], m.weight.data[:][featuremap[1]+1:]))
+                m.weight.data = torch.cat((m.weight.data[:,:featuremap[1]], m.weight.data[:,featuremap[1]+1:]), 1)
                 m.in_channels -= 1
                 break
         return
@@ -60,16 +84,35 @@ def pruneFeatureMaps(model, prunelist):
 def softPruneFilters(model, prunelist):
     for filter in prunelist:
         #print('Soft pruning filter', filter[1], '@ layer', filter[0])
+        done = False
         layer = 0
         for m in model.modules():
+            if done == True:
+                if isBatchNormalizationLayer(m):
+                    m.num_features -= 1
+                    if m.running_mean is not None:
+                        m.running_mean[filter[1]] = 0
+                    if m.running_var is not None:
+                        m.running_var[filter[1]] = 0
+                    if m.weight is not None:
+                        m.weight.data[filter[1]] = 0
+                    if m.bias.data is not None:
+                        m.bias.data[filter[1]] = 0
+                    break
+                else:
+                    break
             if isConvolutionLayer(m):
                 if layer != filter[0]:
                     layer += 1
                     continue
+
+                if m.bias is not None:
+                    m.bias.data[filter[1]] = 0
+
                 zeros = torch.zeros([1,m.weight.data.shape[1],m.weight.data.shape[2], m.weight.data.shape[3]])
                 tussenstap = torch.cat((m.weight.data[:filter[1]], zeros))
                 m.weight.data = torch.cat((tussenstap, m.weight.data[filter[1]+1:]))
-                break
+                done = True
         return
 
 
@@ -97,6 +140,27 @@ def arg_nonzero_min(a):
     return min_v, min_ix
 
 
+def isConvolutionLayer(module):
+    if isinstance(module, torch.nn.Conv2d):
+        return True
+    else:
+        return False
+
+    
+def isBatchNormalizationLayer(module):
+    if isinstance(module, torch.nn.BatchNorm2d):
+        return True
+    else:
+        return False
+
+
+def isConv2dBatchRelu(module):
+    if isinstance(module, ln.network.layer.Conv2dBatchReLU):
+        return True
+    else:
+        return False
+
+
 # Make a list of dependencies of convolutional layers
 def makeDependencyList(model):
     randomInput = torch.rand(1, 3, 416, 416)
@@ -106,7 +170,7 @@ def makeDependencyList(model):
     listed_trace = [s.strip() for s in traced_cell_output.splitlines()] # Split trace in lines
 
     convolutionlist = []
-    index = 1
+    index = 0
     for text in listed_trace:
         if "torch._convolution" in text: # If line contains a convolution link it to its index
             layername = text.split(" = ")[0]
@@ -120,7 +184,26 @@ def makeDependencyList(model):
 
     allowedToPrune(dependencylist)
 
+    findConv2dBatchReluLayers(dependencylist, model)
+
     return dependencylist
+
+
+def findConv2dBatchReluLayers(dependencylist, model):
+    isCombinedLayer = False
+    combinedcount = -1
+    convcount = 0
+    for m in model.modules():
+        if isConv2dBatchRelu(m):
+            combinedcount += 1
+            isCombinedLayer = True
+        if isConvolutionLayer(m):
+            if isCombinedLayer == True:
+                dependencylist[convcount].append(combinedcount)
+                isCombinedLayer = False
+            else:
+                dependencylist[convcount].append(None)
+            convcount += 1
 
 
 # If the dependant is also dependant of another layer you cannot prune in this layer

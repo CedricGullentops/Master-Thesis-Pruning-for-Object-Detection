@@ -7,7 +7,7 @@ import lightnet as ln
 import torch
 import numpy as np
 from utils import arg_nonzero_min, hardPruneFilters, softPruneFilters
-from change import isConvolutionLayer
+from utils import isConvolutionLayer
 
 # Settings
 ln.logger.setConsoleLevel('ERROR')  # Only show error log messages
@@ -23,7 +23,7 @@ class L2prune:
     def __call__(self):
         self.values = []
         if (self.Pruning.manner == 'soft'):
-            self.modelcopy = self.Pruning.model
+            self.modelcopy = self.Pruning.params.network
             self.prunelist = []
 
         filtersperlayer = []
@@ -31,7 +31,7 @@ class L2prune:
 
         # Calculate the initial norm values and
         # calculate total amount of filters and the amount to prune
-        for m in self.Pruning.model.modules():
+        for m in self.Pruning.params.network.modules():
             if isConvolutionLayer(m):
                 filtersperlayer.append(m.out_channels)
                 self.totalfilters += m.out_channels
@@ -64,11 +64,11 @@ class L2prune:
 
         if self.Pruning.manner == 'soft':
                 softPruneFilters(self.modelcopy, self.prunelist)
-                self.Pruning.model = self.modelcopy
+                self.Pruning.params.network = self.modelcopy
 
         # check final amount of filters
         finalcount = 0
-        for m in self.Pruning.model.modules():
+        for m in self.Pruning.params.network.modules():
             if isConvolutionLayer(m):
                 filtersperlayerpruned.append(m.out_channels)
                 finalcount += m.out_channels
@@ -96,7 +96,7 @@ class L2prune:
     # Update the norm values in self.values after pruning
     def updateNormValues(self, layer_index):
         count = 0
-        for m in self.Pruning.model.modules():
+        for m in self.Pruning.params.network.modules():
             if isConvolutionLayer(m):
                 if (count == layer_index):
                     with torch.no_grad():
