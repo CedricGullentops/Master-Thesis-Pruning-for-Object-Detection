@@ -1,5 +1,5 @@
 #
-#   L2norm pruning
+#   GeometricMedian Pruning
 #
 
 # Basic imports

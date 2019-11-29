@@ -7,6 +7,7 @@ RUN	apt install git -y && \
 	pip3 install tqdm && \
 	pip3 install visdom && \
 	pip3 install scipy && \
+	pip3 install multiprocess && \
 	pip3 install tables
 	
 RUN	pip3 install brambox && \

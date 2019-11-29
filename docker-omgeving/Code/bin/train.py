@@ -92,6 +92,7 @@ if __name__ == '__main__':
     )
     parser.add_argument('weight', help='Path to weight file', default=None, nargs='?')
     parser.add_argument('-n', '--network', help='network config file', required=True)
+    parser.add_argument('-pn', '--prunednetwork', help='pruned network config file', required=True)
     parser.add_argument('-c', '--cuda', action='store_true', help='Use cuda')
     parser.add_argument('-b', '--backup', metavar='folder', help='Backup folder', default='./backup')
     parser.add_argument('-v', '--visdom', action='store_true', help='Visualize training data with visdom')
@@ -122,15 +123,21 @@ if __name__ == '__main__':
         visdom = None
 
     params = ln.engine.HyperParameters.from_file(args.network)
-    if args.weight is not None:
-        if args.weight.endswith('.state.pt'):
-            params.load(args.weight)
-        else:
-            params.network.load(args.weight, strict=False)  # Disable strict mode for loading partial weights
+    second = ln.engine.HyperParameters()
+    second.load(args.prunednetwork)
+    params.network = second.network
+
+    #params = ln.engine.HyperParameters.from_file(args.network)
+
+    #if args.weight is not None:
+        #if args.weight.endswith('.state.pt'):
+        #    params.load(args.weight)
+        #else:
+        #params.network.load(args.weight, strict=False)  # Disable strict mode for loading partial weights
 
     # Dataloader
     training_loader = ln.data.DataLoader(
-        FLIRDataset(params.train_set, params, True),
+        FLIRDataset(params.train_set, params, False),
         batch_size = params.mini_batch_size,
         shuffle = True,
         drop_last = True,

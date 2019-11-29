@@ -1,3 +1,4 @@
 
 docker-omgeving/Code/data/*
 docker-omgeving/Code/backup/*
+docker-omgeving/Code/pruned/*

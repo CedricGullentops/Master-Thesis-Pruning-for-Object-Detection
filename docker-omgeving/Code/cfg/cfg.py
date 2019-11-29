@@ -2,6 +2,7 @@ import lightnet as ln
 import torch
 from PrunedNetwork import PrunedNetwork
 
+
 __all__ = ['params']
 
 
@@ -32,8 +33,8 @@ def init_weights(m):
     if isinstance(m, torch.nn.Conv2d):
         torch.nn.init.kaiming_normal_(m.weight, nonlinearity='leaky_relu')
 
-params.network = ln.models.Yolo(len(params.class_label_map))
-params.network.apply(init_weights)
+params.network = PrunedNetwork(ln.models.Yolo(len(params.class_label_map)))
+print(params.network)
 
 # Loss
 params.loss = ln.network.loss.RegionLoss(

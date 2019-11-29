@@ -53,7 +53,7 @@ class TestEngine:
             aps.append(bb.stat.ap(pr))
 
         m_ap = round(100 * mean(aps), 2)
-        print(f'mAP: {m_ap:.2f}%')
+        print(m_ap)
 
         if self.detection is not None:
             def get_img_dim(name):

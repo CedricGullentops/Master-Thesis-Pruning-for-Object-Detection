@@ -1,16 +1,15 @@
 #
-#   Utility functions
-#   
+#   Some random tests
+#
 
 # Basic imports
+import subprocess
 import lightnet as ln
 import torch
-from utils import makeDependencyList
+import os
 
-# Settings
-ln.logger.setConsoleLevel('ERROR')  # Only show error log messages
+test = 'cfg/cfg.py'
+params = ln.engine.HyperParameters.from_file(test)
+weight = 'pruned/pruned.pt'
 
-model = ln.models.Yolo()
-table = makeDependencyList(model)
-for x in table:
-    print(x)
+params.network.load(weight, strict=False)  # Disable strict mode for loading partial weights
