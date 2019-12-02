@@ -1,6 +1,5 @@
 import lightnet as ln
 import torch
-from PrunedNetwork import PrunedNetwork
 
 __all__ = ['params']
 
@@ -13,7 +12,7 @@ params = ln.engine.HyperParameters(
     _resize_factor = (160, 128),
     _batch_size = 64,
     _mini_batch_size = 4,
-    _max_batches = 20000,
+    _max_batches = 15000,
 
     # Dataset
     _train_set = 'data/sets/train.h5',
@@ -65,7 +64,7 @@ burn_in = torch.optim.lr_scheduler.LambdaLR(
 )
 step = torch.optim.lr_scheduler.MultiStepLR(
     params.optimizer,
-    milestones = [10000, 17000],
+    milestones = [1000, 10000],
     gamma = .1,
 )
 params.scheduler = ln.engine.SchedulerCompositor(

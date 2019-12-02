@@ -8,14 +8,16 @@ import torch
 import numpy as np
 from utils import arg_nonzero_min, hardPruneFilters, softPruneFilters
 from utils import isConvolutionLayer
+import logging
 
 # Settings
 ln.logger.setConsoleLevel('ERROR')  # Only show error log messages
 
 
 class L2prune:
-    def __init__(self, Pruning):
+    def __init__(self, Pruning, logprune):
         self.Pruning = Pruning
+        self.logprune = logprune
         self.totalfilters = 0
         self.prunedfilters = 0
        
@@ -28,6 +30,7 @@ class L2prune:
 
         filtersperlayer = []
         filtersperlayerpruned = []
+        logstring = ""
 
         # Calculate the initial norm values and
         # calculate total amount of filters and the amount to prune
@@ -45,7 +48,8 @@ class L2prune:
                     self.values.append([min_value, min_ind])
         self.values = np.array(self.values)
         self.pruneamount = int(0.01*self.Pruning.percentage*self.totalfilters)
-        print('There are', self.totalfilters , 'filters in convolutional layers, attempting to prune', self.pruneamount, 'filters')
+        logstring = 'There are ' + str(self.totalfilters)  + ' filters in convolutional layers, attempting to prune ' + str(self.pruneamount) + ' filters'
+        self.logprune.info(logstring)
 
         # Prune as long as the conditions aren't met
         while self.prunedfilters < self.pruneamount:
@@ -63,7 +67,7 @@ class L2prune:
             self.updateNormValues(layer_index)   
 
         if self.Pruning.manner == 'soft':
-                softPruneFilters(self.modelcopy, self.prunelist)
+                softPruneFilters(self.Pruning, self.modelcopy, self.prunelist)
                 self.Pruning.params.network = self.modelcopy
 
         # check final amount of filters
@@ -72,12 +76,14 @@ class L2prune:
             if isConvolutionLayer(m):
                 filtersperlayerpruned.append(m.out_channels)
                 finalcount += m.out_channels
-        print ("The final amount of filters after pruning is", finalcount)
-        print (self.Pruning.manner ,"pruned", self.prunedfilters,"filters")
-        print("Filters before pruning:")
-        print(filtersperlayer)
-        print("Filters after pruning:")
-        print(filtersperlayerpruned)
+        logstring = "The final amount of filters after pruning is " + str(finalcount)
+        self.logprune.info(logstring)
+        logstring = str(self.Pruning.manner) + " pruned " + str(self.prunedfilters) + " filters"
+        self.logprune.info(logstring)
+        self.logprune.info("Filters before pruning:")
+        self.logprune.info(filtersperlayer)
+        self.logprune.info("Filters after pruning:")
+        self.logprune.info(filtersperlayerpruned)
 
 
     # Find the layer with the lowest value that is able to be pruned

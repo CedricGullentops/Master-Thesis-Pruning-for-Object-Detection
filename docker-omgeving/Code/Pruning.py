@@ -1,34 +1,41 @@
 #
 #   Main pruning class
-#   Simple running example: Python3 Pruning.py 30.0
+#   Simple running example: python3 Pruning.py 10.0 backup/yolov2-640/final.pt -n cfg/yolov2-640.py -c
 #
 
 # Basic imports
 import torch
 import numpy as np
-from PIL import Image
-import matplotlib.pyplot as plt
 import argparse
 import brambox as bb
 import lightnet as ln
 from L2prune import L2prune
 from GeometricMedian import GeometricMedian
 from utils import makeDependencyList
+from testengine import TestEngine
+from trainengine import TrainEngine
 import os
+import logging
+from dataset import *
 
 # Settings
 ln.logger.setConsoleLevel('ERROR')  # Only show error log messages
 bb.logger.setConsoleLevel('ERROR')  # Only show error log messages
 
+logprune = logging.getLogger('lightnet.FLIR.prune')
 
 class Pruning:
-    def __init__(self, params, device, storage, method, percentage, manner,  **kwargs):
-        self.method = method
+    def __init__(self, testing_dataloader, training_dataloader, params, device, percentage, method, manner, storage, backup, maxloss, **kwargs):
+        self.testing_dataloader = testing_dataloader
+        self.training_dataloader = training_dataloader
         self.params = params
         self.device = device
-        self.storage = storage
         self.percentage = percentage
+        self.method = method
         self.manner = manner
+        self.storage = storage
+        self.backup = backup
+        self.maxloss = maxloss
         self.dependencies = makeDependencyList(self.params.network)
 
         # Setting kwargs
@@ -36,30 +43,82 @@ class Pruning:
             if not hasattr(self, k):
                 setattr(self, k, v)
             else:
-                print('{k} attribute already exists, not overwriting with `{v}`')
+                logprune.error('{k} attribute already exists, not overwriting with `{v}`')
 
 
     def __call__(self):
         if self.method == 'l2prune':
-            prune = L2prune(self)
-            prune()
-            self.saveWeightsAndParams()
+            prune = L2prune(self, logprune)
+            self.pruneLoop(prune)
+            quit()
         if self.method == 'centripetalSGD':
-            prune = L2prune(self)
-            prune()
-            self.saveWeightsAndParams()
+            #TODO
+            quit()
         if self.method == 'geometricmedian':
-            prune = GeometricMedian(self)
-            prune()
-            self.saveWeightsAndParams()
+            prune = GeometricMedian(self, logprune)
+            self.pruneLoop(prune)
+            quit()
         else:
-            'No valid method was chosen, exiting'
+            logprune.critical('No valid method was chosen, exiting.')
             quit()
 
 
-    def saveWeightsAndParams(self):
-        self.params.network.save(os.path.join(self.storage, "pruned.pt"))
+    def pruneLoop(self, prune):
+        prunecount = 0
+        testeng = self.makeTestEngine()
+        current_accuracy = testeng()
+        original_accuracy = current_accuracy
+        logstring = "Original accuracy is " + str(original_accuracy)
+        logprune.info(logstring)
+        maxiter = 5
+        while current_accuracy >= (original_accuracy - self.maxloss):
+            logprune.info("Pruning network")
+            prune()
+            prunecount += 1
+            for i in range(maxiter):
+                traineng = self.makeTrainEngine()
+                traineng()
+                current_accuracy = testeng()
+                logstring = "Current accuracy is " + str(current_accuracy)
+                logprune.info(logstring)
+                if (current_accuracy > (original_accuracy - self.maxloss)):
+                    self.saveWeightsAndParams(prunecount, True)
+                    logprune.info("Current accuracy is sufficient to continue pruning")
+                    break
+                else:
+                    if i == maxiter-1:
+                        logprune.warning("Couldn't reach original accuracy, saving and exiting")
+                        self.saveWeightsAndParams(prunecount, False)
+                        break
+                
+
+    def saveWeightsAndParams(self, prunecount, succesful):
+        if succesful:
+            self.params.network.save(os.path.join(self.storage, f"{self.manner}_pruned_{prunecount*self.percentage}.pt"))
+        else:
+            self.params.network.save(os.path.join(self.storage, f"{self.manner}_pruned_{prunecount*self.percentage}_FAILED.pt"))
         return
+
+
+    def makeTestEngine(self):
+        # Start test
+        eng = TestEngine(
+            self.params, self.testing_dataloader,
+            device=self.device,
+            loss_format=self.loss_format,
+            detection=self.detection,
+        )
+        return eng
+
+    
+    def makeTrainEngine(self):
+        eng = TrainEngine(
+            self.params, self.training_dataloader,
+            device=self.device,
+            # visdom=self.visdom, plot_rate=self.visdom_rate, 
+            backup_folder=self.backup
+        )
+        return eng
 
 
 if __name__ == '__main__':
@@ -69,28 +128,40 @@ if __name__ == '__main__':
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
 
-    parser.add_argument('percentage', help='Percentage of network to be pruned', type=float)
+    parser.add_argument('percentage', help='Percentage of network to be pruned per iteration', type=float)
     parser.add_argument('weight', help='Path to weight file')
-    parser.add_argument('-n', '--network', help='network config file', required=True)
+    parser.add_argument('-n', '--network', help='Network config file', required=True)
     parser.add_argument('-c', '--cuda', action='store_true', help='Use cuda')
-    parser.add_argument('-s', '--storage', metavar='folder', help='Storage folder', default='./pruned')
+    parser.add_argument('-s', '--storage', metavar='folder', help='Storage folder for pruned weights', default='./backup/pruned')
+    parser.add_argument('-b', '--backup', metavar='folder', help='Backup folder for whilst training', default='./backup')
     parser.add_argument('-me', '--method', choices=['l2prune', 'centripetalSGD', 'geometricmedian'], default='l2prune',
                         help='The pruning method that will be used')
     parser.add_argument('-m', '--manner', choices=['hard', 'soft'], default='hard',
                         help='The manner in which to prune: soft or hard')
+    parser.add_argument('-mb', '--batches', type=float, help='The maximum amount of batches to to train.')
+    parser.add_argument('-ml', '--maxloss', type=float, help='The maximum percentage of accuracy allowed to lose.', default=0)
+
+    parser.add_argument('-l', '--loss', help='How to display loss', choices=['abs', 'percent', 'none'], default='abs')
+    parser.add_argument('-d', '--det', help='Detection pandas file', default=None)
+
     args = parser.parse_args()
+
+    logging.basicConfig(filename='file.log', filemode='w')
+    filehandler = ln.logger.setLogFile('file.log', levels=('TRAIN', 'TEST', 'PRUNE'), filemode='w')
+    ln.logger.setConsoleColor(False)
+    ln.logger.setConsoleLevel(logging.NOTSET)
 
     device = torch.device('cpu')
     if args.cuda:
         if torch.cuda.is_available():
-            print("CUDA enabled")
+            logprune.debug("CUDA enabled")
             device = torch.device('cuda')
         else:
-            print("CUDA not available")
+            logprune.error("CUDA not available")
 
     if not os.path.isdir(args.storage):
         if not os.path.exists(args.storage):
-            print('Pruning storage folder does not exist, creating...')
+            logprune.warning('Pruning storage folder does not exist, creating...')
             os.makedirs(args.storage)
         else:
             raise ValueError('Storage path is not a folder')
@@ -102,13 +173,40 @@ if __name__ == '__main__':
         else:
             params.network.load(args.weight)
 
+    if args.batches != None:
+        params.max_batches = args.batches
+
+    # Dataloaders
+    testing_dataloader = torch.utils.data.DataLoader(
+        FLIRDataset(params.test_set, params, False),
+        batch_size = params.mini_batch_size,
+        shuffle = False,
+        drop_last = False,
+        num_workers = 8,
+        pin_memory = True,
+        collate_fn = ln.data.brambox_collate,
+    )
+
+    training_dataloader = ln.data.DataLoader(
+        FLIRDataset(params.train_set, params, False),
+        batch_size = params.mini_batch_size,
+        shuffle = True,
+        drop_last = True,
+        num_workers = 8,
+        pin_memory = True,
+        collate_fn = ln.data.brambox_collate,
+    )
+
     # Start pruning
     prune = Pruning(
-        params=params,
-        device=device,
-        storage=args.storage,
-        method=args.method,
+        testing_dataloader, training_dataloader, params, device,
         percentage=args.percentage,
+        method=args.method,
         manner=args.manner,
+        storage=args.storage,
+        backup=args.backup,
+        maxloss=args.maxloss,
+        detection=args.det,
+        loss_format=args.loss,
     )
     prune()

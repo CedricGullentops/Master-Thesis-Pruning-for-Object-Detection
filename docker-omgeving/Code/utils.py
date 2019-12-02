@@ -81,7 +81,7 @@ def pruneFeatureMaps(Pruning, prunelist):
 
 # Iterate through a list and prune the given filters
 # ATTENTION: the order of given filters matters
-def softPruneFilters(model, prunelist):
+def softPruneFilters(Pruning, model, prunelist):
     for filter in prunelist:
         #print('Soft pruning filter', filter[1], '@ layer', filter[0])
         done = False
@@ -109,9 +109,9 @@ def softPruneFilters(model, prunelist):
                 if m.bias is not None:
                     m.bias.data[filter[1]] = 0
 
-                zeros = torch.zeros([1,m.weight.data.shape[1],m.weight.data.shape[2], m.weight.data.shape[3]])
-                tussenstap = torch.cat((m.weight.data[:filter[1]], zeros))
-                m.weight.data = torch.cat((tussenstap, m.weight.data[filter[1]+1:]))
+                zeros = torch.zeros([1,m.weight.data.shape[1],m.weight.data.shape[2], m.weight.data.shape[3]], device=Pruning.device)
+                buffer = torch.cat((m.weight.data[:filter[1]], zeros))
+                m.weight.data = torch.cat((buffer, m.weight.data[filter[1]+1:]))
                 done = True
         return
 
