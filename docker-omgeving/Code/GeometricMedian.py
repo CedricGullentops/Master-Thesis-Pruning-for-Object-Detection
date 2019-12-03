@@ -25,41 +25,42 @@ class GeometricMedian():
        
         
     def __call__(self):
-        self.values = []
-        logstring = ""
+        with torch.no_grad():
+            self.values = []
+            logstring = ""
 
-        filtersperlayer = []
-        filtersperlayerpruned = []
-        
-        #pool = mp.Pool(mp.cpu_count()) # Allows parallelization
+            filtersperlayer = []
+            filtersperlayerpruned = []
+            
+            #pool = mp.Pool(mp.cpu_count()) # Allows parallelization
 
-        layer = 0
-        for m in self.Pruning.params.network.modules():
-            if isConvolutionLayer(m):
-                filtersperlayer.append(m.out_channels)
-                layer +=1
+            layer = 0
+            for m in self.Pruning.params.network.modules():
+                if isConvolutionLayer(m):
+                    filtersperlayer.append(m.out_channels)
+                    layer +=1
 
-        for number in range(layer):
-            logstring = "working in layer " + str(number)
+            for number in range(layer):
+                logstring = "working in layer " + str(number)
+                self.logprune.info(logstring)
+                #pool.apply(self.pruneInLayer, args=(number, )) 
+                self.pruneInLayer(number)
+            #pool.close()
+
+            # check final amount of filters
+            finalcount = 0
+            for m in self.Pruning.params.network.modules():
+                if isConvolutionLayer(m):
+                    filtersperlayerpruned.append(m.out_channels)
+                    finalcount += m.out_channels
+            logstring = "The final amount of filters after pruning is " +  str(finalcount)
             self.logprune.info(logstring)
-            #pool.apply(self.pruneInLayer, args=(number, )) 
-            self.pruneInLayer(number)
-        #pool.close()
-
-        # check final amount of filters
-        finalcount = 0
-        for m in self.Pruning.params.network.modules():
-            if isConvolutionLayer(m):
-                filtersperlayerpruned.append(m.out_channels)
-                finalcount += m.out_channels
-        logstring = "The final amount of filters after pruning is " +  str(finalcount)
-        self.logprune.info(logstring)
-        logstring = str(self.Pruning.manner) + " pruned " + str(self.prunedfilters) + " filters"
-        self.logprune.info(logstring)
-        self.logprune.info("Filters before pruning:")
-        self.logprune.info(filtersperlayer)
-        self.logprune.info("Filters after pruning:")
-        self.logprune.info(filtersperlayerpruned)
+            logstring = str(self.Pruning.manner) + " pruned " + str(self.prunedfilters) + " filters"
+            self.logprune.info(logstring)
+            self.logprune.info("Filters before pruning:")
+            self.logprune.info(filtersperlayer)
+            self.logprune.info("Filters after pruning:")
+            self.logprune.info(filtersperlayerpruned)
 
 
     def pruneInLayer(self, layer):

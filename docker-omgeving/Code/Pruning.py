@@ -65,7 +65,9 @@ class Pruning:
 
     def pruneLoop(self, prune):
         prunecount = 0
+        traineng = self.makeTrainEngine()
         testeng = self.makeTestEngine()
+        self.params.network.eval()
         current_accuracy = testeng()
         original_accuracy = current_accuracy
         logstring = "Original accuracy is " + str(original_accuracy)
@@ -76,8 +78,17 @@ class Pruning:
             prune()
             prunecount += 1
             for i in range(maxiter):
-                traineng = self.makeTrainEngine()
+                self.params.network.train()
+                self.params.optimizer = torch.optim.SGD(
+                    params.network.parameters(),
+                    lr = .001,
+                    momentum = .9,
+                    weight_decay = .0005,
+                    dampening = 0,
+                )
                 traineng()
+                traineng.batch = 0
+                self.params.network.eval()
                 current_accuracy = testeng()
                 logstring = "Current accuracy is " + str(current_accuracy)
                 logprune.info(logstring)
@@ -175,6 +186,7 @@ if __name__ == '__main__':
 
     if args.batches != None:
         params.max_batches = args.batches
+        
 
     # Dataloaders
     testing_dataloader = torch.utils.data.DataLoader(
