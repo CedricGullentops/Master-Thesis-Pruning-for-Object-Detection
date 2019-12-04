@@ -12,6 +12,7 @@ from scipy.optimize import minimize
 from scipy.spatial.distance import cdist
 #import multiprocessing as mp
 import logging
+import torch.multiprocessing as mp
 
 # Settings
 ln.logger.setConsoleLevel('ERROR')  # Only show error log messages
@@ -32,7 +33,7 @@ class GeometricMedian():
             filtersperlayer = []
             filtersperlayerpruned = []
             
-            #pool = mp.Pool(mp.cpu_count()) # Allows parallelization
+            pool = mp.Pool(mp.cpu_count()) # Allows parallelization
 
             layer = 0
             for m in self.Pruning.params.network.modules():
@@ -43,9 +44,9 @@ class GeometricMedian():
             for number in range(layer):
                 logstring = "working in layer " + str(number)
                 self.logprune.info(logstring)
-                #pool.apply(self.pruneInLayer, args=(number, )) 
-                self.pruneInLayer(number)
-            #pool.close()
+                pool.apply(self.pruneInLayer, args=(number, )) 
+                #self.pruneInLayer(number)
+            pool.close()
 
             # check final amount of filters
             finalcount = 0

@@ -17,6 +17,7 @@ from trainengine import TrainEngine
 import os
 import logging
 from dataset import *
+import multiprocessing as mp
 
 # Settings
 ln.logger.setConsoleLevel('ERROR')  # Only show error log messages
@@ -47,35 +48,31 @@ class Pruning:
 
 
     def __call__(self):
-        if self.method == 'l2prune':
-            prune = L2prune(self, logprune)
-            self.pruneLoop(prune)
-            quit()
-        if self.method == 'centripetalSGD':
-            #TODO
-            quit()
-        if self.method == 'geometricmedian':
-            prune = GeometricMedian(self, logprune)
-            self.pruneLoop(prune)
-            quit()
-        else:
-            logprune.critical('No valid method was chosen, exiting.')
-            quit()
-
-
-    def pruneLoop(self, prune):
         prunecount = 0
         traineng = self.makeTrainEngine()
         testeng = self.makeTestEngine()
         self.params.network.eval()
-        current_accuracy = testeng()
-        original_accuracy = current_accuracy
+        #current_accuracy = testeng()
+        #original_accuracy = current_accuracy
+        original_accuracy = 100.0
+        current_accuracy = 100.0
         logstring = "Original accuracy is " + str(original_accuracy)
         logprune.info(logstring)
         maxiter = 5
         while current_accuracy >= (original_accuracy - self.maxloss):
             logprune.info("Pruning network")
-            prune()
+            if self.method == 'l2prune':
+                prune = L2prune(self, logprune)
+                prune()
+            elif self.method == 'centripetalSGD':
+                #TODO
+                quit()
+            elif self.method == 'geometricmedian':
+                prune = GeometricMedian(self, logprune)
+                prune()
+            else:
+                logprune.critical('No valid method was chosen, exiting.')
+                quit()()
             prunecount += 1
             for i in range(maxiter):
                 self.params.network.train()
@@ -86,6 +83,7 @@ class Pruning:
                     weight_decay = .0005,
                     dampening = 0,
                 )
+                self.params.optimizer.zero_grad()
                 traineng()
                 traineng.batch = 0
                 self.params.network.eval()
@@ -101,7 +99,7 @@ class Pruning:
                         logprune.warning("Couldn't reach original accuracy, saving and exiting")
                         self.saveWeightsAndParams(prunecount, False)
                         break
-                
+
 
     def saveWeightsAndParams(self, prunecount, succesful):
         if succesful:

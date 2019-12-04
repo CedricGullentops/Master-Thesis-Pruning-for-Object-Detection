@@ -36,7 +36,6 @@ class L2prune:
             # Calculate the initial norm values and
             # calculate total amount of filters and the amount to prune
             for m in self.Pruning.params.network.modules():
-                print(m)
                 if isConvolutionLayer(m):
                     filtersperlayer.append(m.out_channels)
                     self.totalfilters += m.out_channels
