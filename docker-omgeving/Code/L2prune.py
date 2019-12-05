@@ -6,13 +6,11 @@
 import lightnet as ln
 import torch
 import numpy as np
-from utils import arg_nonzero_min, hardPruneFilters, softPruneFilters
-from utils import isConvolutionLayer
+from utils import arg_nonzero_min, hardPruneFilters, softPruneFilters, isConvolutionLayer, isConv2dBatchRelu
 import logging
 
 # Settings
 ln.logger.setConsoleLevel('ERROR')  # Only show error log messages
-
 
 class L2prune:
     def __init__(self, Pruning, logprune):
@@ -70,6 +68,22 @@ class L2prune:
             if self.Pruning.manner == 'soft':
                     softPruneFilters(self.Pruning, self.modelcopy, self.prunelist)
                     self.Pruning.params.network = self.modelcopy
+
+            # Heeft niet gewerkt
+            #TODO delete?
+            for m in self.Pruning.params.network.modules():
+                if isConv2dBatchRelu(m):
+                    newModule = ln.network.layer.Conv2dBatchReLU(m.in_channels, m.out_channels, m.kernel_size, m.stride, m.padding)
+                    newModule.layers[0].weight.data = m.layers[0].weight.data
+                    if (m.layers[0].bias is not None):
+                        newModule.layers[0].bias.data = m.layers[0].bias.data
+                    m = newModule
+                elif isConvolutionLayer(m):
+                    newModule = torch.nn.Conv2d(m.in_channels, m.out_channels, m.kernel_size, m.stride, m.padding, m.bias)
+                    newModule.weight.data = m.weight.data
+                    if (m.bias is not None):
+                        newModule.bias.data = m.bias.data
+                    m = newModule
 
             # check final amount of filters
             finalcount = 0

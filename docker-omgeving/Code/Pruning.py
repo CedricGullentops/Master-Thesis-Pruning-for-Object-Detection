@@ -11,6 +11,7 @@ import brambox as bb
 import lightnet as ln
 from L2prune import L2prune
 from GeometricMedian import GeometricMedian
+from CentripetalSGD import CentripetalSGD
 from utils import makeDependencyList
 from testengine import TestEngine
 from trainengine import TrainEngine
@@ -49,32 +50,35 @@ class Pruning:
 
     def __call__(self):
         prunecount = 0
+        MAXITER = 5
         traineng = self.makeTrainEngine()
         testeng = self.makeTestEngine()
         self.params.network.eval()
-        #current_accuracy = testeng()
-        #original_accuracy = current_accuracy
-        original_accuracy = 100.0
-        current_accuracy = 100.0
+        current_accuracy = testeng()
+        original_accuracy = current_accuracy
+        #current_accuracy = 100.0
+        #original_accuracy = 100.0
         logstring = "Original accuracy is " + str(original_accuracy)
         logprune.info(logstring)
-        maxiter = 5
         while current_accuracy >= (original_accuracy - self.maxloss):
             logprune.info("Pruning network")
             if self.method == 'l2prune':
                 prune = L2prune(self, logprune)
                 prune()
-            elif self.method == 'centripetalSGD':
-                #TODO
-                quit()
+            elif self.method == 'centripetalSGD_even':
+                prune = CentripetalSGD(self, logprune, 'even')
+                prune()
+            elif self.method == 'centripetalSGD_kmeans':
+                prune = CentripetalSGD(self, logprune, 'kmeans')
+                prune()
             elif self.method == 'geometricmedian':
                 prune = GeometricMedian(self, logprune)
                 prune()
             else:
                 logprune.critical('No valid method was chosen, exiting.')
-                quit()()
+                quit()
             prunecount += 1
-            for i in range(maxiter):
+            for i in range(MAXITER):
                 self.params.network.train()
                 self.params.optimizer = torch.optim.SGD(
                     params.network.parameters(),
@@ -91,17 +95,17 @@ class Pruning:
                 logstring = "Current accuracy is " + str(current_accuracy)
                 logprune.info(logstring)
                 if (current_accuracy > (original_accuracy - self.maxloss)):
-                    self.saveWeightsAndParams(prunecount, True)
+                    self.saveWeights(prunecount, True)
                     logprune.info("Current accuracy is sufficient to continue pruning")
                     break
                 else:
-                    if i == maxiter-1:
+                    if i == MAXITER-1:
                         logprune.warning("Couldn't reach original accuracy, saving and exiting")
-                        self.saveWeightsAndParams(prunecount, False)
+                        self.saveWeights(prunecount, False)
                         break
 
 
-    def saveWeightsAndParams(self, prunecount, succesful):
+    def saveWeights(self, prunecount, succesful):
         if succesful:
             self.params.network.save(os.path.join(self.storage, f"{self.manner}_pruned_{prunecount*self.percentage}.pt"))
         else:
@@ -143,7 +147,7 @@ if __name__ == '__main__':
     parser.add_argument('-c', '--cuda', action='store_true', help='Use cuda')
     parser.add_argument('-s', '--storage', metavar='folder', help='Storage folder for pruned weights', default='./backup/pruned')
     parser.add_argument('-b', '--backup', metavar='folder', help='Backup folder for whilst training', default='./backup')
-    parser.add_argument('-me', '--method', choices=['l2prune', 'centripetalSGD', 'geometricmedian'], default='l2prune',
+    parser.add_argument('-me', '--method', choices=['l2prune', 'centripetalSGD_even', 'centripetalSGD_kmeans', 'geometricmedian'], default='l2prune',
                         help='The pruning method that will be used')
     parser.add_argument('-m', '--manner', choices=['hard', 'soft'], default='hard',
                         help='The manner in which to prune: soft or hard')

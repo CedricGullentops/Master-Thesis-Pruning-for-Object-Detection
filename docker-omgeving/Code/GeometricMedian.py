@@ -9,7 +9,6 @@ import numpy as np
 from utils import arg_nonzero_min, hardPruneFilters, softPruneFilters
 from utils import isConvolutionLayer
 from scipy.optimize import minimize
-from scipy.spatial.distance import cdist
 #import multiprocessing as mp
 import logging
 import torch.multiprocessing as mp
@@ -72,21 +71,21 @@ class GeometricMedian():
                     count += 1
                     continue
                 layerAmount = int((self.Pruning.percentage * m.out_channels) / 100.0)
-                with torch.no_grad():
-                    centroid = self.findCentralPoint(m.weight.data)
-                    order = self.arrangeFiltersByDistance(m.weight.data, centroid)
-                    toDelete = []
-                    for filter in range(layerAmount):
-                        toDelete.append((layer, order[filter][0]))
-                    toDelete = sorted(toDelete, key=lambda toDelete: toDelete[1], reverse=True)
-                    logstring = "Layer " +  str(layer) + " deleting: " + str(toDelete)
-                    self.logprune.info(logstring)
 
-                    if self.Pruning.manner == 'soft':
-                        softPruneFilters(self.Pruning.params.network, toDelete)
-                    elif self.Pruning.manner == 'hard':
-                        hardPruneFilters(self.Pruning, toDelete)
-                    self.prunedfilters += len(toDelete)
+                centroid = self.findCentralPoint(m.weight.data)
+                order = self.arrangeFiltersByDistance(m.weight.data, centroid)
+                toDelete = []
+                for filter in range(layerAmount):
+                    toDelete.append((layer, order[filter][0]))
+                toDelete = sorted(toDelete, key=lambda toDelete: toDelete[1], reverse=True)
+                logstring = "Layer " +  str(layer) + " deleting: " + str(toDelete)
+                self.logprune.info(logstring)
+
+                if self.Pruning.manner == 'soft':
+                    softPruneFilters(self.Pruning, self.Pruning.params.network, toDelete)
+                elif self.Pruning.manner == 'hard':
+                    hardPruneFilters(self.Pruning, toDelete)
+                self.prunedfilters += len(toDelete)
                 return
 
 
