@@ -1,5 +1,50 @@
 # LOG
 
+**Wk 11: 1 - 7 dec**
+
+Gepland:
+
+- Maken van de tweede activiteitenrapport.
+- Maken van de derde techniek.
+- Fixen van bug bij het hertrainen van een gepruned netwerk.
+
+Bereikt:
+
+- Maken van de tweede activiteitenrapport.
+
+Nog bezig: 
+
+- Maken van de derde techniek
+
+Niet-bereikt:
+
+- Een bug die optreedt na het hertrainen van een gepruned netwerk.
+
+---
+
+**Wk 10: 24 - 30 nov**
+
+Gepland:
+
+- Maken van werkomgeving op desktop met GPU toegankelijkheid.
+- Maken van config files voor test runs.
+- Bugs fixen.
+
+Bereikt:
+
+- Maken van werkomgeving op desktop met GPU toegankelijkheid.
+- Maken van config files voor test runs.
+
+Nog bezig: 
+
+- Bugs fixen, de meeste zijn verbeterd.
+
+Niet-bereikt:
+
+- Een bug die optreedt na het hertrainen van een gepruned netwerk.
+
+---
+
 **Wk 9: 17 - 23 nov**
 
 Gepland:
@@ -14,7 +59,7 @@ Bereikt:
 
 Nog bezig: 
 
-- Maken van convig files voor test runs.
+- Maken van config files voor test runs.
 
 Niet-bereikt:
 
