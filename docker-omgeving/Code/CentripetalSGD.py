@@ -6,7 +6,7 @@
 import lightnet as ln
 import torch
 import numpy as np
-from utils import arg_nonzero_min, hardPruneFilters, softPruneFilters
+from utils import arg_nonzero_min, hardPruneFilters, softPruneFilters, deleteGrads
 from utils import isConvolutionLayer
 #import multiprocessing as mp
 import logging
@@ -41,10 +41,11 @@ class CentripetalSGD():
                     layer +=1
 
             for number in range(layer):
-                logstring = "working in layer " + str(number)
-                self.logprune.info(logstring)
-                #pool.apply(self.pruneInLayer, args=(number, )) 
-                self.pruneInLayer(number)
+                if (self.Pruning.dependencies[number][2] == True):
+                    logstring = "working in layer " + str(number)
+                    self.logprune.info(logstring)
+                    #pool.apply(self.pruneInLayer, args=(number, )) 
+                    self.pruneInLayer(number)
             #pool.close()
 
             # check final amount of filters
@@ -53,6 +54,9 @@ class CentripetalSGD():
                 if isConvolutionLayer(m):
                     filtersperlayerpruned.append(m.out_channels)
                     finalcount += m.out_channels
+
+            deleteGrads(self.Pruning)
+
             logstring = "The final amount of filters after pruning is " +  str(finalcount)
             self.logprune.info(logstring)
             logstring = str(self.Pruning.manner) + " pruned " + str(self.prunedfilters) + " filters"
@@ -75,11 +79,11 @@ class CentripetalSGD():
                 
 
     def makeClusters(self, m, clusterAmount):
+        clusters = []
+        for _ in range(clusterAmount):
+            clusters.append([])
         if (self.clustermethod == 'even'):
             count = 0
-            clusters = []
-            for _ in range(clusterAmount):
-                clusters.append([])
             for filter in range(m.out_channels):
                 clusters[count].append(filter)
                 if count == clusterAmount-1:
@@ -87,8 +91,18 @@ class CentripetalSGD():
             print(clusters)
             return clusters
         elif (self.clustermethod == 'kmeans'):
-            print("kmeans todo")
+            centroids = []
+            for i in range(clusterAmount):
+                centroids.append(m.weight.data[i].clone().detach())
+            print(centroids)
+            return self.kmeansClustering(m, clusters, centroids)
         else:
             self.logprune.critical('The given clusteringmethod wasn\'t recognized, exiting.')
             quit()
+
+    def kmeansClustering(self, m, clusters, centroids):
+        changedCluster = True
+        while changedCluster == True:
+            print('TEST')
+        return clusters
 

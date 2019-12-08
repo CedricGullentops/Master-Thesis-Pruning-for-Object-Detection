@@ -6,7 +6,7 @@
 import lightnet as ln
 import torch
 import numpy as np
-from utils import arg_nonzero_min, hardPruneFilters, softPruneFilters
+from utils import arg_nonzero_min, hardPruneFilters, softPruneFilters, deleteGrads
 from utils import isConvolutionLayer
 from scipy.optimize import minimize
 #import multiprocessing as mp
@@ -32,7 +32,7 @@ class GeometricMedian():
             filtersperlayer = []
             filtersperlayerpruned = []
             
-            pool = mp.Pool(mp.cpu_count()) # Allows parallelization
+            #pool = mp.Pool(mp.cpu_count()) # Allows parallelization
 
             layer = 0
             for m in self.Pruning.params.network.modules():
@@ -41,11 +41,12 @@ class GeometricMedian():
                     layer +=1
 
             for number in range(layer):
-                logstring = "working in layer " + str(number)
-                self.logprune.info(logstring)
-                pool.apply(self.pruneInLayer, args=(number, )) 
-                #self.pruneInLayer(number)
-            pool.close()
+                if self.Pruning.dependencies[number][2] == True:
+                    logstring = "working in layer " + str(number)
+                    self.logprune.info(logstring)
+                    #pool.apply(self.pruneInLayer, args=(number, )) 
+                    self.pruneInLayer(number)
+            #pool.close()
 
             # check final amount of filters
             finalcount = 0
@@ -53,6 +54,9 @@ class GeometricMedian():
                 if isConvolutionLayer(m):
                     filtersperlayerpruned.append(m.out_channels)
                     finalcount += m.out_channels
+
+            deleteGrads(self.Pruning)
+
             logstring = "The final amount of filters after pruning is " +  str(finalcount)
             self.logprune.info(logstring)
             logstring = str(self.Pruning.manner) + " pruned " + str(self.prunedfilters) + " filters"
@@ -71,13 +75,16 @@ class GeometricMedian():
                     count += 1
                     continue
                 layerAmount = int((self.Pruning.percentage * m.out_channels) / 100.0)
-
+                
                 centroid = self.findCentralPoint(m.weight.data)
                 order = self.arrangeFiltersByDistance(m.weight.data, centroid)
                 toDelete = []
                 for filter in range(layerAmount):
                     toDelete.append((layer, order[filter][0]))
                 toDelete = sorted(toDelete, key=lambda toDelete: toDelete[1], reverse=True)
+
+                print("Size: ", m.weight.data.size())
+
                 logstring = "Layer " +  str(layer) + " deleting: " + str(toDelete)
                 self.logprune.info(logstring)
 
@@ -103,19 +110,20 @@ class GeometricMedian():
 
 
     def findCentralPoint(self, weights):
-        weights = weights.numpy()
-        centroid = np.median(weights, 0) # Initial guess for centroid is median
+        np_weights = weights.clone().detach()
+        np_weights = np_weights.cpu().numpy()
+        centroid = np.median(np_weights, 0) # Initial guess for centroid is median
 
         carray = centroid.ravel()
 
         def aggregate_distance(carray):
             centroid = carray.reshape(weights.shape[1], weights.shape[2], weights.shape[3])
-            filterdiff = weights - centroid
+            filterdiff = np_weights - centroid
             return (np.square(filterdiff).sum(axis=1).sum(axis=1).sum(axis=1)/(filterdiff.shape[1]*filterdiff.shape[2]*filterdiff.shape[3])).sum()
 
         optimize_result = minimize(aggregate_distance, carray, method='COBYLA')
         result = optimize_result.x.reshape(weights.shape[1], weights.shape[2], weights.shape[3])
 
-        tensor = torch.from_numpy(result).float().to("cpu")
+        tensor = torch.from_numpy(result).float().to(self.Pruning.device)
 
         return tensor

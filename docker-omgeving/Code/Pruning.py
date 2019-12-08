@@ -49,9 +49,9 @@ class Pruning:
 
 
     def __call__(self):
+        self.params.network.to(self.device)
         prunecount = 0
         MAXITER = 5
-        traineng = self.makeTrainEngine()
         testeng = self.makeTestEngine()
         self.params.network.eval()
         current_accuracy = testeng()
@@ -78,7 +78,13 @@ class Pruning:
                 logprune.critical('No valid method was chosen, exiting.')
                 quit()
             prunecount += 1
+            current_accuracy = testeng()
+            logstring = "Accuracy after pruning is " + str(current_accuracy)
+            logprune.info(logstring)
             for i in range(MAXITER):
+                logstring = "Retrain iteration: " + str(i+1)
+                logprune.info(logstring)
+                traineng = self.makeTrainEngine()
                 self.params.network.train()
                 self.params.optimizer = torch.optim.SGD(
                     params.network.parameters(),
@@ -159,9 +165,19 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    logging.basicConfig(filename='file.log', filemode='w')
-    filehandler = ln.logger.setLogFile('file.log', levels=('TRAIN', 'TEST', 'PRUNE'), filemode='w')
-    ln.logger.setConsoleColor(False)
+    #logging.basicConfig(filename='file.log', filemode='w')
+    if not os.path.isdir(args.storage):
+        if not os.path.exists(args.storage):
+            logprune.warning('Pruning storage folder does not exist, creating...')
+            os.makedirs(args.storage)
+        else:
+            raise ValueError('Storage path is not a folder')
+
+    if args.storage is not None:
+        logging.basicConfig(filename=os.path.join(args.storage, 'file.log'), filemode='w')
+    else:
+        logging.basicConfig(filename='file.log', filemode='w')
+    #filehandler = ln.logger.setLogFile('file.log', levels=('TRAIN', 'TEST', 'PRUNE'), filemode='w')
     ln.logger.setConsoleLevel(logging.NOTSET)
 
     device = torch.device('cpu')
@@ -171,13 +187,6 @@ if __name__ == '__main__':
             device = torch.device('cuda')
         else:
             logprune.error("CUDA not available")
-
-    if not os.path.isdir(args.storage):
-        if not os.path.exists(args.storage):
-            logprune.warning('Pruning storage folder does not exist, creating...')
-            os.makedirs(args.storage)
-        else:
-            raise ValueError('Storage path is not a folder')
 
     params = ln.engine.HyperParameters.from_file(args.network)
     if args.weight is not None:

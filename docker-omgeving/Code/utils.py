@@ -116,6 +116,23 @@ def softPruneFilters(Pruning, model, prunelist):
         return
 
 
+def deleteGrads(Pruning):
+    for m in Pruning.params.network.modules():
+        if isBatchNormalizationLayer(m):
+            if m.running_mean is not None:
+                    m.running_mean.grad = None
+            if m.running_var is not None:
+                    m.running_var.grad = None
+            if m.weight is not None:
+                    m.weight.grad = None
+            if m.bias.data is not None:
+                    m.bias.grad = None
+        elif isConvolutionLayer(m):
+            if (m.bias is not None):
+                m.bias.grad = None
+            m.weight.grad = None
+
+
 # Find lowest non-zero value in a non-negative array
 def arg_nonzero_min(a):
     if not a:
@@ -208,7 +225,12 @@ def findConv2dBatchReluLayers(dependencylist, model):
 
 # If the dependant is also dependant of another layer you cannot prune in this layer
 def allowedToPrune(dependencylist):
+    count = -1
     for element in dependencylist:
+        count += 1
+        if count == len(dependencylist)-1:
+            element.append(False)
+            break
         element.append(True)
         for other in dependencylist:
             if element[0][0] != other[0][0]:
