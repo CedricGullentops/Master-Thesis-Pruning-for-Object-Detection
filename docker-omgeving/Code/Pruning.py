@@ -54,10 +54,10 @@ class Pruning:
         MAXITER = 5
         testeng = self.makeTestEngine()
         self.params.network.eval()
-        current_accuracy = testeng()
-        original_accuracy = current_accuracy
-        #current_accuracy = 100.0
-        #original_accuracy = 100.0
+        #current_accuracy = testeng()
+        #original_accuracy = current_accuracy
+        current_accuracy = 100.0
+        original_accuracy = 100.0
         logstring = "Original accuracy is " + str(original_accuracy)
         logprune.info(logstring)
         while current_accuracy >= (original_accuracy - self.maxloss):
@@ -86,7 +86,7 @@ class Pruning:
                 logprune.info(logstring)
                 traineng = self.makeTrainEngine()
                 self.params.network.train()
-                self.params.optimizer = torch.optim.SGD(
+                self.params.optimizer = torch.optim.SGD( #TODO read these parameters from self.params
                     params.network.parameters(),
                     lr = .001,
                     momentum = .9,
@@ -109,6 +109,7 @@ class Pruning:
                         logprune.warning("Couldn't reach original accuracy, saving and exiting")
                         self.saveWeights(prunecount, False)
                         break
+        self.params.network.to('cpu')
 
 
     def saveWeights(self, prunecount, succesful):
