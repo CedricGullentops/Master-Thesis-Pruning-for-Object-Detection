@@ -16,7 +16,7 @@ params = ln.engine.HyperParameters(
 
     # Pruning
     _lower_acc_delta = -2,
-    _upper_acc_delta = 2,
+    _upper_acc_delta = 1,
 
     # Dataset
     _train_set = 'data/sets/train.h5',
