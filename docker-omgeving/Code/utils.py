@@ -120,16 +120,28 @@ def deleteGrads(Pruning):
     for m in Pruning.params.network.modules():
         if isBatchNormalizationLayer(m):
             if m.running_mean is not None:
-                    m.running_mean.grad = None
+                if m.running_mean.grad is not None:
+                    m.running_mean.grad.detach_()
+                m.running_mean.grad = None
             if m.running_var is not None:
-                    m.running_var.grad = None
+                if m.running_var.grad is not None:
+                    m.running_var.grad.detach_()
+                m.running_var.grad = None
             if m.weight is not None:
-                    m.weight.grad = None
-            if m.bias.data is not None:
-                    m.bias.grad = None
-        elif isConvolutionLayer(m):
-            if (m.bias is not None):
+                if m.weight.grad is not None:
+                    m.weight.grad.detach_()
+                m.weight.grad = None
+            if m.bias is not None:
+                if m.bias.grad is not None:
+                    m.bias.grad.detach_()
                 m.bias.grad = None
+        elif isConvolutionLayer(m):
+            if m.bias is not None:
+                if m.bias.grad is not None:
+                    m.bias.grad.detach_()
+                m.bias.grad = None
+            if m.weight.grad is not None:
+                m.weight.grad.detach_()
             m.weight.grad = None
 
 

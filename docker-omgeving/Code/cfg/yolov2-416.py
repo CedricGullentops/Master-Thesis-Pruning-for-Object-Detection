@@ -14,6 +14,10 @@ params = ln.engine.HyperParameters(
     _mini_batch_size = 8,
     _max_batches = 20000,
 
+    # Pruning
+    _lower_acc_delta = -2,
+    _upper_acc_delta = 2,
+
     # Dataset
     _train_set = 'data/sets/train.h5',
     _test_set = 'data/sets/test.h5',
@@ -24,6 +28,17 @@ params = ln.engine.HyperParameters(
     _hue = 0,           # Original Grayscale images -> dont modify hue
     _saturation = 1.5,
     _value = 1.5,
+
+    # Optimizer
+    lr = .001,
+    momentum = .9,
+    weight_decay = .0005,
+    dampening = 0,
+
+    # Scheduler
+    burnin = 1000,
+    milestones = [15000],
+    gamma = 0.1,
 )
 
 # Network
@@ -39,6 +54,7 @@ params.loss = ln.network.loss.RegionLoss(
     len(params.class_label_map),
     params.network.anchors,
     params.network.stride,
+    coord_prefill=0,
 )
 
 # Postprocessing
@@ -47,28 +63,3 @@ params._post = ln.data.transform.Compose([
     ln.data.transform.NonMaxSuppression(0.5),
     ln.data.transform.TensorToBrambox(params.input_dimension, params.class_label_map),
 ])
-
-# Optimizer
-params.optimizer = torch.optim.SGD(
-    params.network.parameters(),
-    lr = .001,
-    momentum = .9,
-    weight_decay = .0005,
-    dampening = 0,
-)
-
-# Scheduler
-burn_in = torch.optim.lr_scheduler.LambdaLR(
-    params.optimizer,
-    lambda b: (b / 1000) ** 4,
-)
-step = torch.optim.lr_scheduler.MultiStepLR(
-    params.optimizer,
-    milestones = [15000],
-    gamma = .1,
-)
-params.scheduler = ln.engine.SchedulerCompositor(
-#   batch   scheduler
-    (0,     burn_in),
-    (1000,  step),
-)
