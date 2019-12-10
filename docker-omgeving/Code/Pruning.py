@@ -19,15 +19,18 @@ import os
 import logging
 from dataset import *
 import multiprocessing as mp
+import pandas as pd
+import brambox as bb
+from tqdm import tqdm
+from statistics import mean
 
 # Settings
-ln.logger.setConsoleLevel('ERROR')  # Only show error log messages
 bb.logger.setConsoleLevel('ERROR')  # Only show error log messages
-
+ln.logger.setConsoleLevel('INFO')
 logprune = logging.getLogger('lightnet.FLIR.prune')
 
 class Pruning:
-    def __init__(self, testing_dataloader, training_dataloader, params, device, percentage, method, manner, storage, backup, maxloss, **kwargs):
+    def __init__(self, testing_dataloader, training_dataloader, params, device, percentage, method, manner, storage, **kwargs):
         self.testing_dataloader = testing_dataloader
         self.training_dataloader = training_dataloader
         self.params = params
@@ -36,8 +39,6 @@ class Pruning:
         self.method = method
         self.manner = manner
         self.storage = storage
-        self.backup = backup
-        self.maxloss = maxloss
         self.dependencies = makeDependencyList(self.params.network)
 
         # Setting kwargs
@@ -47,20 +48,14 @@ class Pruning:
             else:
                 logprune.error('{k} attribute already exists, not overwriting with `{v}`')
 
-
     def __call__(self):
         self.params.network.to(self.device)
         prunecount = 0
-        MAXITER = 5
-        testeng = self.makeTestEngine()
-        self.params.network.eval()
-        #current_accuracy = testeng()
-        #original_accuracy = current_accuracy
-        current_accuracy = 100.0
-        original_accuracy = 100.0
-        logstring = "Original accuracy is " + str(original_accuracy)
-        logprune.info(logstring)
-        while current_accuracy >= (original_accuracy - self.maxloss):
+        current_accuracy = self.test_accuracy()
+        original_accuracy = current_accuracy
+        logprune.info(f'Original accuracy is {original_accuracy:.2f}%')
+        while current_accuracy >= (original_accuracy + self.params.lower_acc_delta):
+            # Prune
             logprune.info("Pruning network")
             if self.method == 'l2prune':
                 prune = L2prune(self, logprune)
@@ -78,39 +73,49 @@ class Pruning:
                 logprune.critical('No valid method was chosen, exiting.')
                 quit()
             prunecount += 1
-            current_accuracy = testeng()
-            logstring = "Accuracy after pruning is " + str(current_accuracy)
-            logprune.info(logstring)
-            for i in range(MAXITER):
-                logstring = "Retrain iteration: " + str(i+1)
-                logprune.info(logstring)
-                traineng = self.makeTrainEngine()
-                self.params.network.train()
-                self.params.optimizer = torch.optim.SGD( #TODO read these parameters from self.params
-                    params.network.parameters(),
-                    lr = .001,
-                    momentum = .9,
-                    weight_decay = .0005,
-                    dampening = 0,
-                )
-                self.params.optimizer.zero_grad()
-                traineng()
-                traineng.batch = 0
-                self.params.network.eval()
-                current_accuracy = testeng()
-                logstring = "Current accuracy is " + str(current_accuracy)
-                logprune.info(logstring)
-                if (current_accuracy > (original_accuracy - self.maxloss)):
-                    self.saveWeights(prunecount, True)
-                    logprune.info("Current accuracy is sufficient to continue pruning")
-                    break
-                else:
-                    if i == MAXITER-1:
-                        logprune.warning("Couldn't reach original accuracy, saving and exiting")
-                        self.saveWeights(prunecount, False)
-                        break
-        self.params.network.to('cpu')
 
+            # Check accuracy
+            current_accuracy = self.test_accuracy()
+            logprune.info(f'Accuracy after pruning: {current_accuracy:.2f}%')
+
+            #import pdb; pdb.set_trace()
+
+            # Train
+            self.params.network.train()
+            self.params.batch = 0
+            self.params.epoch = 0
+            self.params.optimizer = torch.optim.SGD(
+                params.network.parameters(),
+                lr = self.params.lr,
+                momentum = self.params.momentum,
+                weight_decay = self.params.weight_decay,
+                dampening = self.params.dampening,
+            )
+            burn_in = torch.optim.lr_scheduler.LambdaLR(
+                self.params.optimizer,
+                lambda b: (b / self.params.burnin) ** 4,
+            )
+            step = torch.optim.lr_scheduler.MultiStepLR(
+                params.optimizer,
+                milestones = self.params.milestones,
+                gamma = self.params.gamma,
+            )
+            params.scheduler = ln.engine.SchedulerCompositor(
+                (0,                     burn_in),
+                (self.params.burnin,    step),
+            )
+
+            training_engine = self.makeTrainEngine(original_accuracy, prunecount*self.percentage)
+            training_engine()
+            if training_engine.sigint:  # Interrupted
+                break
+            current_accuracy = training_engine.accuracy
+            
+            logprune.info(f'[Pruned {prunecount*self.percentage}] Trained for {training_engine.batch} batches')
+            logprune.info(f'[Pruned {prunecount*self.percentage}] Accuracy after retraining: {current_accuracy:.2f}%')
+            if not training_engine.training_success:
+                logprune.warning("[Pruned {prunecount*self.percentage}] Couldn't reach original accuracy, saving and exiting")
+                break
 
     def saveWeights(self, prunecount, succesful):
         if succesful:
@@ -119,26 +124,49 @@ class Pruning:
             self.params.network.save(os.path.join(self.storage, f"{self.manner}_pruned_{prunecount*self.percentage}_FAILED.pt"))
         return
 
+    def test_accuracy(self):
+        self.params.network.eval()
 
-    def makeTestEngine(self):
-        # Start test
-        eng = TestEngine(
-            self.params, self.testing_dataloader,
-            device=self.device,
-            loss_format=self.loss_format,
-            detection=self.detection,
-        )
-        return eng
+        # Run network
+        anno, det = [], []
+        with torch.no_grad():
+            for idx, (data, target) in enumerate(tqdm(self.testing_dataloader, desc='Test')):
+                data = data.to(self.device)
+                output = self.params.network(data)
+                output = self.params.post(output)
 
-    
-    def makeTrainEngine(self):
-        eng = TrainEngine(
+                output.image = pd.Categorical.from_codes(output.image, dtype=target.image.dtype)
+                anno.append(target)
+                det.append(output)
+
+        anno = bb.util.concat(anno, ignore_index=True, sort=False)
+        det = bb.util.concat(det, ignore_index=True, sort=False)
+        self.params.network.train()
+        
+        # Statistics
+        aps = []
+        for c in tqdm(self.params.class_label_map, desc='Stat'):
+            anno_c = anno[anno.class_label == c]
+            det_c = det[det.class_label == c]
+
+            # By default brambox considers ignored annos as regions -> we want to consider them as annos still
+            matched_det = bb.stat.match_det(det_c, anno_c, 0.5, criteria=bb.stat.coordinates.iou, ignore=bb.stat.IgnoreMethod.SINGLE)
+            pr = bb.stat.pr(matched_det, anno_c)
+
+            aps.append(bb.stat.ap(pr))
+
+        return 100 * mean(aps)
+
+    def makeTrainEngine(self, original_acc, prune_percentage):
+        return TrainEngine(
             self.params, self.training_dataloader,
             device=self.device,
+            backup_folder=self.storage,
+            test_dataloader=self.testing_dataloader,
+            original_acc=original_acc,
+            prune_percentage=prune_percentage,
             # visdom=self.visdom, plot_rate=self.visdom_rate, 
-            backup_folder=self.backup
         )
-        return eng
 
 
 if __name__ == '__main__':
@@ -153,17 +181,13 @@ if __name__ == '__main__':
     parser.add_argument('-n', '--network', help='Network config file', required=True)
     parser.add_argument('-c', '--cuda', action='store_true', help='Use cuda')
     parser.add_argument('-s', '--storage', metavar='folder', help='Storage folder for pruned weights', default='./backup/pruned')
-    parser.add_argument('-b', '--backup', metavar='folder', help='Backup folder for whilst training', default='./backup')
     parser.add_argument('-me', '--method', choices=['l2prune', 'centripetalSGD_even', 'centripetalSGD_kmeans', 'geometricmedian'], default='l2prune',
                         help='The pruning method that will be used')
     parser.add_argument('-m', '--manner', choices=['hard', 'soft'], default='hard',
                         help='The manner in which to prune: soft or hard')
     parser.add_argument('-mb', '--batches', type=float, help='The maximum amount of batches to to train.')
-    parser.add_argument('-ml', '--maxloss', type=float, help='The maximum percentage of accuracy allowed to lose.', default=0)
-
-    parser.add_argument('-l', '--loss', help='How to display loss', choices=['abs', 'percent', 'none'], default='abs')
-    parser.add_argument('-d', '--det', help='Detection pandas file', default=None)
-
+    parser.add_argument('-ud', '--upperdelta', type=float, help='The maximum percentage of accuracy to gain before stopping training routine', default=None)
+    parser.add_argument('-ld', '--lowerdelta', type=float, help='The maximum percentage of accuracy allowed to lose. [NEGATIVE]', default=None)
     args = parser.parse_args()
 
     #logging.basicConfig(filename='file.log', filemode='w')
@@ -178,8 +202,6 @@ if __name__ == '__main__':
         logging.basicConfig(filename=os.path.join(args.storage, 'file.log'), filemode='w')
     else:
         logging.basicConfig(filename='file.log', filemode='w')
-    #filehandler = ln.logger.setLogFile('file.log', levels=('TRAIN', 'TEST', 'PRUNE'), filemode='w')
-    ln.logger.setConsoleLevel(logging.NOTSET)
 
     device = torch.device('cpu')
     if args.cuda:
@@ -196,10 +218,13 @@ if __name__ == '__main__':
         else:
             params.network.load(args.weight)
 
-    if args.batches != None:
+    if args.batches is not None:
         params.max_batches = args.batches
+    if args.upperdelta is not None:
+        params.upper_acc_delta = args.upperdelta
+    if args.lowerdelta is not None:
+        params.lower_acc_delta = args.lowerdelta
         
-
     # Dataloaders
     testing_dataloader = torch.utils.data.DataLoader(
         FLIRDataset(params.test_set, params, False),
@@ -212,7 +237,7 @@ if __name__ == '__main__':
     )
 
     training_dataloader = ln.data.DataLoader(
-        FLIRDataset(params.train_set, params, False),
+        FLIRDataset(params.train_set, params, True),
         batch_size = params.mini_batch_size,
         shuffle = True,
         drop_last = True,
@@ -228,9 +253,5 @@ if __name__ == '__main__':
         method=args.method,
         manner=args.manner,
         storage=args.storage,
-        backup=args.backup,
-        maxloss=args.maxloss,
-        detection=args.det,
-        loss_format=args.loss,
     )
     prune()

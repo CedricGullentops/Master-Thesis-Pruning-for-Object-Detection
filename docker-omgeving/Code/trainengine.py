@@ -10,12 +10,17 @@ import visdom
 import numpy as np
 import lightnet as ln
 from dataset import *
+from tqdm import tqdm
+import pandas as pd
+import brambox as bb
 
 log = logging.getLogger('lightnet.FLIR.train')
 
 
 class TrainEngine(ln.engine.Engine):
     def start(self):
+        self.training_success = False
+        self.accuracy = None
         self.params.to(self.device)
         self.resize()
         self.optimizer.zero_grad()
@@ -62,11 +67,6 @@ class TrainEngine(ln.engine.Engine):
         #self.plot_train_loss(np.array([[tot, coord, conf]]), np.array([self.batch]))
         #self.plot_lr(np.array([self.optimizer.param_groups[0]['lr']]), np.array([self.batch]))
 
-    @ln.engine.Engine.batch_end(5000)
-    def backup(self):
-        self.params.save(os.path.join(self.backup_folder, f'weights_{self.batch}.state.pt'))
-        log.info(f'Saved backup')
-
     @ln.engine.Engine.batch_end(10)
     def resize(self):
         if self.batch >= self.max_batches - 200:
@@ -74,12 +74,60 @@ class TrainEngine(ln.engine.Engine):
         else:
         	self.dataloader.change_input_dim(self.resize_factor, self.resize_range)
 
+    @ln.engine.Engine.epoch_end()
+    def test_accuracy(self):
+        self.network.eval()
+
+        # Run network
+        anno, det = [], []
+        with torch.no_grad():
+            for idx, (data, target) in enumerate(tqdm(self.test_dataloader, desc='Test')):
+                data = data.to(self.device)
+                output = self.network(data)
+                output = self.post(output)
+
+                output.image = pd.Categorical.from_codes(output.image, dtype=target.image.dtype)
+                anno.append(target)
+                det.append(output)
+
+        anno = bb.util.concat(anno, ignore_index=True, sort=False)
+        det = bb.util.concat(det, ignore_index=True, sort=False)
+        self.network.train()
+        
+        # Statistics
+        aps = []
+        for c in tqdm(self.class_label_map, desc='Stat'):
+            anno_c = anno[anno.class_label == c]
+            det_c = det[det.class_label == c]
+
+            # By default brambox considers ignored annos as regions -> we want to consider them as annos still
+            matched_det = bb.stat.match_det(det_c, anno_c, 0.5, criteria=bb.stat.coordinates.iou, ignore=bb.stat.IgnoreMethod.SINGLE)
+            pr = bb.stat.pr(matched_det, anno_c)
+
+            aps.append(bb.stat.ap(pr))
+        self.accuracy = round(100 * mean(aps), 2)
+        log.info(f'[Pruned {self.prune_percentage}] Accuracy after training epoch {self.epoch}: {self.accuracy:.2f}%')
+
+        # Check mAP
+        if self.accuracy >= self.original_acc + self.upper_acc_delta:
+            self.training_success = True
+
     def quit(self):
-        if self.batch >= self.max_batches:
-            self.params.network.save(os.path.join(self.backup_folder, 'final.pt'))
+        if self.training_success:
+            self.params.network.save(os.path.join(self.backup_folder, f"pruned_{self.prune_percentage}.pt"))
+            return True
+        elif self.batch >= self.max_batches:
+            self.test_accuracy()
+            if self.accuracy >= self.original_acc + self.lower_acc_delta:
+                self.training_success = True
+                self.params.network.save(os.path.join(self.backup_folder, f"pruned_{self.prune_percentage}.pt"))
+            else:
+                self.training_success = False
+                self.params.network.save(os.path.join(self.backup_folder, f"pruned_{self.prune_percentage}-FAILED.pt"))
             return True
         elif self.sigint:
             self.params.save(os.path.join(self.backup_folder, 'backup.state.pt'))
+            self.training_success = False
             return True
         else:
             return False
