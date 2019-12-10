@@ -117,32 +117,14 @@ def softPruneFilters(Pruning, model, prunelist):
 
 
 def deleteGrads(Pruning):
-    for m in Pruning.params.network.modules():
-        if isBatchNormalizationLayer(m):
-            if m.running_mean is not None:
-                if m.running_mean.grad is not None:
-                    m.running_mean.grad.detach_()
-                m.running_mean.grad = None
-            if m.running_var is not None:
-                if m.running_var.grad is not None:
-                    m.running_var.grad.detach_()
-                m.running_var.grad = None
-            if m.weight is not None:
-                if m.weight.grad is not None:
-                    m.weight.grad.detach_()
-                m.weight.grad = None
-            if m.bias is not None:
-                if m.bias.grad is not None:
-                    m.bias.grad.detach_()
-                m.bias.grad = None
-        elif isConvolutionLayer(m):
-            if m.bias is not None:
-                if m.bias.grad is not None:
-                    m.bias.grad.detach_()
-                m.bias.grad = None
-            if m.weight.grad is not None:
-                m.weight.grad.detach_()
-            m.weight.grad = None
+    for p in Pruning.params.network.parameters():
+        if p.grad is not None:
+            p.grad.detach_()
+            p.grad = None
+    for b in Pruning.params.network.buffers():
+        if b.grad is not None:
+            b.grad.detach_()
+            b.grad = None
 
 
 # Find lowest non-zero value in a non-negative array

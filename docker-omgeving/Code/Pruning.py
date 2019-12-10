@@ -73,6 +73,8 @@ class Pruning:
                 logprune.critical('No valid method was chosen, exiting.')
                 quit()
             prunecount += 1
+            self.params.network.to('cpu')
+            self.params.network.to(self.device)
 
             # Check accuracy
             current_accuracy = self.test_accuracy()
@@ -114,7 +116,7 @@ class Pruning:
             logprune.info(f'[Pruned {prunecount*self.percentage}] Trained for {training_engine.batch} batches')
             logprune.info(f'[Pruned {prunecount*self.percentage}] Accuracy after retraining: {current_accuracy:.2f}%')
             if not training_engine.training_success:
-                logprune.warning("[Pruned {prunecount*self.percentage}] Couldn't reach original accuracy, saving and exiting")
+                logprune.warning(f"[Pruned {prunecount*self.percentage}] Couldn't reach original accuracy, saving and exiting")
                 break
 
     def saveWeights(self, prunecount, succesful):
