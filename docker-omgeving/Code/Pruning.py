@@ -73,8 +73,6 @@ class Pruning:
                 logprune.critical('No valid method was chosen, exiting.')
                 quit()
             prunecount += 1
-            self.params.network.to('cpu')
-            self.params.network.to(self.device)
 
             # Check accuracy
             current_accuracy = self.test_accuracy()

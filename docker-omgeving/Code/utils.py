@@ -6,6 +6,7 @@
 import lightnet as ln
 import torch
 import numpy as np
+import torch.nn as nn
 
 # Settings
 ln.logger.setConsoleLevel('ERROR')  # Only show error log messages
@@ -28,13 +29,13 @@ def hardPruneFilters(Pruning, prunelist):
                 if isBatchNormalizationLayer(m):
                     m.num_features -= 1
                     if m.running_mean is not None:
-                        m.running_mean = torch.cat((m.running_mean[:filter[1]], m.running_mean[filter[1]+1:]))
+                        m.running_mean = nn.Parameter(torch.cat((m.running_mean[:filter[1]], m.running_mean[filter[1]+1:]))).detach()
                     if m.running_var is not None:
-                        m.running_var = torch.cat((m.running_var[:filter[1]], m.running_var[filter[1]+1:]))
+                        m.running_var = nn.Parameter(torch.cat((m.running_var[:filter[1]], m.running_var[filter[1]+1:]))).detach()
                     if m.weight is not None:
-                        m.weight.data = torch.cat((m.weight.data[:filter[1]], m.weight.data[filter[1]+1:]))
+                        m.weight = nn.Parameter(torch.cat((m.weight[:filter[1]], m.weight[filter[1]+1:])))
                     if m.bias.data is not None:
-                        m.bias.data = torch.cat((m.bias.data[:filter[1]], m.bias.data[filter[1]+1:]))
+                        m.bias = nn.Parameter(torch.cat((m.bias[:filter[1]], m.bias[filter[1]+1:])))
                     break
                 else:
                     break
@@ -44,9 +45,9 @@ def hardPruneFilters(Pruning, prunelist):
                     continue
 
                 if m.bias is not None:
-                    m.bias.data = torch.cat((m.bias.data[:filter[1]], m.bias.data[filter[1]+1:]))
+                    m.bias = nn.Parameter(torch.cat((m.bias[:filter[1]], m.bias[filter[1]+1:])))
 
-                m.weight.data = torch.cat((m.weight.data[:filter[1]], m.weight.data[filter[1]+1:]))
+                m.weight = nn.Parameter(torch.cat((m.weight[:filter[1]], m.weight[filter[1]+1:])))
                 m.out_channels -= 1
 
                 if len(Pruning.dependencies[layer][1]) != 0:
@@ -73,10 +74,11 @@ def pruneFeatureMaps(Pruning, prunelist):
                 if layer != featuremap[0]:
                     layer += 1
                     continue
-                m.weight.data = torch.cat((m.weight.data[:,:featuremap[1]], m.weight.data[:,featuremap[1]+1:]), 1)
+                #m.weight.data = torch.cat((m.weight.data[:,:featuremap[1]], m.weight.data[:,featuremap[1]+1:]), 1)
+                m.weight = nn.Parameter(torch.cat((m.weight[:,:featuremap[1]], m.weight[:,featuremap[1]+1:]), 1))
                 m.in_channels -= 1
                 break
-        return
+    return
 
 
 # Iterate through a list and prune the given filters
@@ -89,15 +91,14 @@ def softPruneFilters(Pruning, model, prunelist):
         for m in model.modules():
             if done == True:
                 if isBatchNormalizationLayer(m):
-                    m.num_features -= 1
                     if m.running_mean is not None:
                         m.running_mean[filter[1]] = 0
                     if m.running_var is not None:
                         m.running_var[filter[1]] = 0
                     if m.weight is not None:
-                        m.weight.data[filter[1]] = 0
-                    if m.bias.data is not None:
-                        m.bias.data[filter[1]] = 0
+                        m.weight[filter[1]] = 0
+                    if m.bias is not None:
+                        m.bias[filter[1]] = 0
                     break
                 else:
                     break
@@ -107,13 +108,13 @@ def softPruneFilters(Pruning, model, prunelist):
                     continue
 
                 if m.bias is not None:
-                    m.bias.data[filter[1]] = 0
+                    m.bias[filter[1]] = 0
 
                 zeros = torch.zeros([1,m.weight.data.shape[1],m.weight.data.shape[2], m.weight.data.shape[3]], device=Pruning.device)
                 buffer = torch.cat((m.weight.data[:filter[1]], zeros))
-                m.weight.data = torch.cat((buffer, m.weight.data[filter[1]+1:]))
+                m.weight = nn.Parameter(torch.cat((buffer, m.weight.data[filter[1]+1:])))
                 done = True
-        return
+    return
 
 
 def deleteGrads(Pruning):
