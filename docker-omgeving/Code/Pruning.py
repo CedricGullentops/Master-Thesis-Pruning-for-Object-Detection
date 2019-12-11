@@ -28,6 +28,7 @@ from statistics import mean
 bb.logger.setConsoleLevel('ERROR')  # Only show error log messages
 ln.logger.setConsoleLevel('INFO')
 logprune = logging.getLogger('lightnet.FLIR.prune')
+torch.set_num_threads(8)    # Specify threads for DGX
 
 class Pruning:
     def __init__(self, testing_dataloader, training_dataloader, params, device, percentage, method, manner, storage, **kwargs):
