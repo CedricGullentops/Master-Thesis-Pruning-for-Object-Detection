@@ -30,14 +30,14 @@ params = ln.engine.HyperParameters(
     _value = 1.5,
 
     # Optimizer
-    lr = .001,
+    lr = .0001,
     momentum = .9,
     weight_decay = .0005,
     dampening = 0,
 
     # Scheduler
-    burnin = 1000,
-    milestones = [15000],
+    burnin = 500,
+    milestones = [5000],
     gamma = 0.1,
 )
 
