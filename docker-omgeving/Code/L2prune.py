@@ -19,13 +19,14 @@ class L2prune:
         self.logprune = logprune
         self.totalfilters = 0
         self.prunedfilters = 0
+        self.allowedfilters = 0
        
         
     def __call__(self):
         with torch.no_grad():
             self.values = []
             if (self.Pruning.manner == 'soft'):
-                self.modelcopy = copy.copy(self.Pruning.params.network)
+                self.modelcopy = copy.deepcopy(self.Pruning.params.network)
                 self.prunelist = []
 
             filtersperlayer = []
@@ -34,10 +35,13 @@ class L2prune:
 
             # Calculate the initial norm values and
             # calculate total amount of filters and the amount to prune
+            count = 0
             for m in self.Pruning.params.network.modules():
                 if isConvolutionLayer(m):
                     filtersperlayer.append(m.out_channels)
                     self.totalfilters += m.out_channels
+                    if (self.Pruning.dependencies[count][2] == True):
+                        self.allowedfilters += m.out_channels
                     
                     # Sum of squared values divided by the amount of values
                     weights = m.weight.data
@@ -46,13 +50,15 @@ class L2prune:
                     values_this_layer = values_this_layer / torch.sqrt(torch.pow(values_this_layer, 2).sum())
                     min_value, min_ind = arg_nonzero_min(list(values_this_layer))
                     self.values.append([min_value, min_ind])
+                    count += 1
             self.values = np.array(self.values)
             self.pruneamount = int(0.01*self.Pruning.percentage*self.totalfilters)
-            logstring = 'There are ' + str(self.totalfilters)  + ' filters in convolutional layers, attempting to prune ' + str(self.pruneamount) + ' filters'
+            logstring = 'There are ' + str(self.totalfilters)  + ' filters in convolutional layers, allowed to prune in ' + str(self.allowedfilters)\
+            + ', attempting to prune ' + str(self.pruneamount) + ' filters'
             self.logprune.info(logstring)
 
             # Prune as long as the conditions aren't met
-            while self.prunedfilters < self.pruneamount:
+            while self.prunedfilters < self.pruneamount and not (self.pruneamount > self.allowedfilters):
                 layer_index = self.findLayerIndex()
                 filter_index = int(self.values[layer_index, 1])
 
