@@ -21,9 +21,6 @@ class CentripetalSGDTrainEngine(ln.engine.Engine):
         self.optimizer.zero_grad()
 
         self.train_loss = {'tot': [], 'coord': [], 'conf': []}
-        #self.plot_train_loss = ln.engine.LinePlotter(self.visdom, 'train_loss', opts=dict(xlabel='Batch', ylabel='Loss', title='Training Loss', showlegend=True, legend=['Total loss', 'Coordinate loss', 'Confidence loss']))
-        #self.plot_lr = ln.engine.LinePlotter(self.visdom, 'learning_rate', name='Learning Rate', opts=dict(xlabel='Batch', ylabel='Learning Rate', title='Learning Rate Schedule'))
-        #self.batch_end(self.plot_rate)(self.plot)
 
     def process_batch(self, data):
         data, target = data
@@ -53,20 +50,6 @@ class CentripetalSGDTrainEngine(ln.engine.Engine):
             self.sigint = True
             return
 
-    def plot(self):
-        tot = mean(self.train_loss['tot'])
-        coord = mean(self.train_loss['coord'])
-        conf = mean(self.train_loss['conf'])
-        self.train_loss = {'tot': [], 'coord': [], 'conf': []}
-
-        #self.plot_train_loss(np.array([[tot, coord, conf]]), np.array([self.batch]))
-        #self.plot_lr(np.array([self.optimizer.param_groups[0]['lr']]), np.array([self.batch]))
-
-    @ln.engine.Engine.batch_end(5000)
-    def backup(self):
-        self.params.save(os.path.join(self.backup_folder, f'weights_{self.batch}.state.pt'))
-        log.info(f'Saved backup')
-
     @ln.engine.Engine.batch_end(10)
     def resize(self):
         if self.batch >= self.max_batches - 200:
@@ -76,10 +59,6 @@ class CentripetalSGDTrainEngine(ln.engine.Engine):
 
     def quit(self):
         if self.batch >= self.max_batches:
-            self.params.network.save(os.path.join(self.backup_folder, 'final.pt'))
-            return True
-        elif self.sigint:
-            self.params.save(os.path.join(self.backup_folder, 'backup.state.pt'))
             return True
         else:
-            return False
+             False

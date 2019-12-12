@@ -6,13 +6,13 @@
 import lightnet as ln
 import torch
 import numpy as np
-from utils import arg_nonzero_min, hardPruneFilters, softPruneFilters, deleteGrads
-from utils import isConvolutionLayer
+from utils import arg_nonzero_min, hardPruneFilters, softPruneFilters, deleteGrads, combineFilters, isConvolutionLayer
 #import multiprocessing as mp
 import logging
 import collections
 import copy
 from centripetalSGDTrainingEngine import CentripetalSGDTrainEngine
+from C_SGD import C_SGD
 
 
 # Settings
@@ -40,14 +40,73 @@ class CentripetalSGD():
                 filtersperlayer.append(m.out_channels)
                 layer +=1
 
+        # Generate clusters
         clusterlist = []
         for number in range(layer):
             if (self.Pruning.dependencies[number][2] == True):
-                logstring = "working in layer " + str(number)
+                logstring = "Making clusters for layer " + str(number)
                 self.logprune.info(logstring)
                 clusterlist.append(self.clusterInLayer(number))
-        centripetalTrainEngine = self.makeCentripetalSGDTrainEngine(clusterlist)
-        centripetalTrainEngine()
+
+        self.Pruning.params.network.train()
+        self.Pruning.params.batch = 0
+        self.Pruning.params.epoch = 0
+        self.Pruning.params.optimizer = C_SGD(
+            self.Pruning.params.network.parameters(),
+            clusterlist,
+            self.Pruning,
+            lr = self.Pruning.params.lr,
+            weight_decay = self.Pruning.params.weight_decay,
+            centripetal_force = 0.001,
+        )
+        burn_in = torch.optim.lr_scheduler.LambdaLR(
+            self.Pruning.params.optimizer,
+            lambda b: (b / self.Pruning.params.burnin) ** 4,
+        )
+        step = torch.optim.lr_scheduler.MultiStepLR(
+            self.Pruning.params.optimizer,
+            milestones = self.Pruning.params.milestones,
+            gamma = self.Pruning.params.gamma,
+        )
+        self.Pruning.params.scheduler = ln.engine.SchedulerCompositor(
+            (0,                     burn_in),
+            (self.Pruning.params.burnin,    step),
+        )
+        centripetalTrainEngine = self.makeCentripetalSGDTrainEngine()
+        #centripetalTrainEngine()
+
+        layer = 0
+        allowedlayer = 0
+        for m in self.Pruning.params.network.modules():
+            if isConvolutionLayer(m):
+                if (self.Pruning.dependencies[layer][2] == True):
+                    clustercount = 0
+                    for cluster in clusterlist[allowedlayer]:
+                        ## Test to see if filters grew to eachoter
+                        #print("One cluster:")
+                        #filtercount = 0
+                        #for filter in cluster:
+                        #    print(m.weight[filter])
+                        #    filtercount += 1
+                        #quit()
+
+                        if len(cluster) < 2:
+                            continue
+                        combineFilters(layer, cluster, self.Pruning)
+
+                        # Adjust integers in other clusters to account for shifts in tensor because of deleted filters
+                        otherclustercount = 0
+                        for othercluster in clusterlist[allowedlayer]:
+                            if otherclustercount > clustercount:
+                                for i in cluster:
+                                    for item in othercluster:
+                                        if item > i:
+                                            item -= 1
+                            otherclustercount += 1
+
+                        clustercount += 1
+                    allowedlayer += 1 
+                layer += 1
 
         # check final amount of filters
         finalcount = 0
@@ -68,13 +127,11 @@ class CentripetalSGD():
         self.logprune.info(filtersperlayerpruned)
         quit()
 
-    def makeCentripetalSGDTrainEngine(self, clusterlist):
+    def makeCentripetalSGDTrainEngine(self):
         eng = CentripetalSGDTrainEngine(
             self.Pruning.params, self.Pruning.training_dataloader,
             device=self.Pruning.device,
             # visdom=self.visdom, plot_rate=self.visdom_rate, 
-            backup_folder=self.Pruning.backup,
-            clusterlist=clusterlist
         )
         return eng
 
@@ -87,24 +144,6 @@ class CentripetalSGD():
                     continue
                 clusterAmount = int(((100.0-self.Pruning.percentage) * m.out_channels) / 100.0)
                 return self.makeClusters(m, clusterAmount)
-
-
-    def centripetalSGDTraining(self, lr, weight_decay, centripetal, clusters, m):
-        for cluster in clusters:
-            for iteration in range(10000):
-                deltaFilters = [torch.zeros([m.weight.data.shape[1],m.weight.data.shape[2],m.weight.data.shape[3]], device=self.Pruning.device)] * len(cluster)
-                print(deltaFilters)
-
-                for deltaFilter in deltaFilters:
-                    lossIncrement = [torch.zeros([m.weight.data.shape[1],m.weight.data.shape[2],m.weight.data.shape[3]], device=self.Pruning.device)] #Eerste term
-                print(deltaFilters)
-
-                dindex = 0
-                for dfilter in deltaFilters:
-                    m.weight.data[cluster[dindex]] += lr * dfilter 
-            quit()
-            #TODO combine in_channels and delete other filters and in channels
-        return
 
 
     def makeClusters(self, m, clusterAmount):
