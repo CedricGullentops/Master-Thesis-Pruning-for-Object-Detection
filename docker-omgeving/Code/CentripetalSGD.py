@@ -80,8 +80,9 @@ class CentripetalSGD():
         for m in self.Pruning.params.network.modules():
             if isConvolutionLayer(m):
                 if (self.Pruning.dependencies[layer][2] == True):
-                    clustercount = 0
+                    clustercount = -1
                     for cluster in clusterlist[allowedlayer]:
+                        clustercount += 1
                         ## Test to see if filters grew to eachoter
                         #print("One cluster:")
                         #filtercount = 0
@@ -89,6 +90,8 @@ class CentripetalSGD():
                         #    print(m.weight[filter])
                         #    filtercount += 1
                         #quit()
+
+                        print(clustercount)
 
                         if len(cluster) < 2:
                             continue
@@ -99,12 +102,13 @@ class CentripetalSGD():
                         for othercluster in clusterlist[allowedlayer]:
                             if otherclustercount > clustercount:
                                 for i in cluster:
+                                    itemcount = 0
                                     for item in othercluster:
-                                        if item > i:
-                                            item -= 1
+                                        if item >= i:
+                                            othercluster[itemcount] -= 1
+                                        itemcount +=1 
                             otherclustercount += 1
-
-                        clustercount += 1
+                        
                     allowedlayer += 1 
                 layer += 1
 

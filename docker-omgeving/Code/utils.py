@@ -7,6 +7,7 @@ import lightnet as ln
 import torch
 import numpy as np
 import torch.nn as nn
+import copy
 
 # Settings
 ln.logger.setConsoleLevel('ERROR')  # Only show error log messages
@@ -116,17 +117,21 @@ def softPruneFilters(Pruning, model, prunelist):
     return
             
 
-def combineFeatureMaps(Pruning, target, featuremapslist, dependencies):
-    layer = 0
-    for dependency in dependencies:
+def combineFeatureMaps(Pruning, target, featuremapslist):
+    for layer in featuremapslist:
+        count = 0
         for m in Pruning.params.network.modules():
             if isConvolutionLayer(m):
-                if layer != dependency:
-                    layer += 1
+                if count != layer[0]:
+                    count += 1
                     continue
-                for featuremap in featuremapslist:
-                    m.weight[:, target[1]].add(featuremap) 
-                break  
+                fmapcount = 0
+                for featuremap in layer:
+                    if fmapcount == 0:
+                        fmapcount = 1
+                        continue
+                    m.weight[:, target[1]] = m.weight[:, target[1]].add(featuremap)
+                break 
 
 
 def getFeatureMapFilter(Pruning, featuremap):
@@ -139,36 +144,33 @@ def getFeatureMapFilter(Pruning, featuremap):
             return m.weight[:,featuremap[1]]  
 
 
-def combineFilters(layer, cluster, Pruning):
+def combineFilters(layer, rccluster, Pruning):
+    cluster = copy.deepcopy(rccluster)
     keptfilter = cluster[0]
     keptfilter = (layer, keptfilter)
     cluster.pop(0)
+    cluster = sorted(cluster, reverse=True)
+
     prunelist = []
     prunefeaturemaplist = []
-
-    # Find the filters to hardprune and feature maps to combine and put them in lists
+    # Find the filters and feature maps to hardprune and put them in a list
     for filter in cluster:
         prunelist.append((layer, filter))
-        if len(Pruning.dependencies[layer][1]) != 0:
-            for dependency in Pruning.dependencies[layer][1]:
-                prunetuple = (dependency, filter)
-                prunefeaturemaplist.append(prunetuple)
+        for dependency in Pruning.dependencies[layer][1]:
+            prunetuple = (dependency, filter)
+            prunefeaturemaplist.append(prunetuple)   
 
+    # Put all feature map filters as a reference in a list
     featuremaplist = []
-    count = 0
-    for m in Pruning.params.network.modules():
-        if isConvolutionLayer(m):
-            if count == layer:
-                for featuremap in prunefeaturemaplist:
-                    featuremaplist.append(getFeatureMapFilter(Pruning, featuremap))
-                break
-            count += 1
+    for dependency in Pruning.dependencies[layer][1]:
+        layer = [dependency]
+        for filter in cluster:
+            layer.append(getFeatureMapFilter(Pruning, (dependency, filter)))
+        featuremaplist.append(layer)
 
-    prunefeaturemaplist = sorted(prunefeaturemaplist, key=lambda prunefeaturemaplist: prunefeaturemaplist[1], reverse=True)
-    combineFeatureMaps(Pruning, keptfilter, featuremaplist, Pruning.dependencies[layer][1])
+    # Prune these feature maps and filters
+    combineFeatureMaps(Pruning, keptfilter, featuremaplist)
     pruneFeatureMaps(Pruning, prunefeaturemaplist)
-
-    prunelist = sorted(prunelist, key=lambda prunelist: prunelist[1], reverse=True)
     hardPruneFilters(Pruning, prunelist)
     return
 
