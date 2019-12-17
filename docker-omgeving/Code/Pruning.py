@@ -53,7 +53,9 @@ class Pruning:
         self.params.network.to(self.device)
         prunecount = 0
         current_accuracy = self.test_accuracy()
+        #current_accuracy = 100.0
         original_accuracy = current_accuracy
+        
         logprune.info(f'Original accuracy is {original_accuracy:.2f}%')
         while current_accuracy >= (original_accuracy + self.params.lower_acc_delta):
             # Prune
@@ -62,10 +64,10 @@ class Pruning:
                 prune = L2prune(self, logprune)
                 prune()
             elif self.method == 'centripetalSGD_even':
-                prune = CentripetalSGD(self, logprune, 'even')
+                prune = CentripetalSGD(self, logprune, 'even', self.training_dataloader)
                 prune()
             elif self.method == 'centripetalSGD_kmeans':
-                prune = CentripetalSGD(self, logprune, 'kmeans')
+                prune = CentripetalSGD(self, logprune, 'kmeans', self.training_dataloader)
                 prune()
             elif self.method == 'geometricmedian':
                 prune = GeometricMedian(self, logprune)
