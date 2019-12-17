@@ -51,8 +51,8 @@ class Pruning:
     def __call__(self):
         self.params.network.to(self.device)
         prunecount = 0
-        #current_accuracy = self.test_accuracy()
-        current_accuracy = 100.0
+        current_accuracy = self.test_accuracy()
+        #current_accuracy = 100.0
         original_accuracy = current_accuracy
         
         logprune.info(f'Original accuracy is {original_accuracy:.2f}%')

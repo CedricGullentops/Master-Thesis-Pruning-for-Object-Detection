@@ -63,7 +63,7 @@ class CentripetalSGD():
             self.Pruning,
             lr = self.Pruning.params.lr,
             weight_decay = self.Pruning.params.weight_decay,
-            centripetal_force = 0.001,
+            centripetal_force = 0.01,
         )
         burn_in = torch.optim.lr_scheduler.LambdaLR(
             self.Pruning.params.optimizer,

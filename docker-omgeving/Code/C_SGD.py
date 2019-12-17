@@ -35,7 +35,6 @@ class C_SGD(Optimizer):
             for m in self.Pruning.params.network.modules():
                 if isConvolutionLayer(m):
                     if (self.Pruning.dependencies[layer][2] == True):
-                        clustercount = 0
                         for cluster in self.clusterlist[allowedlayer]:
                             if m.weight.grad is None:
                                 continue
@@ -48,7 +47,6 @@ class C_SGD(Optimizer):
                                 filtersum += m.weight[filter]
                                 gradientsum += m.weight.grad[filter]
                             
-                            filtercount = 0
                             for filter in cluster:
                                 deltafilter = torch.zeros([m.weight.data.shape[1], m.weight.data.shape[2], m.weight.data.shape[3]], device=self.Pruning.device)
                                 deltafilter -= gradientsum / clusterdimensionality
@@ -56,9 +54,6 @@ class C_SGD(Optimizer):
                                 deltafilter += centripetal_force * ((filtersum / clusterdimensionality) - m.weight[filter])
                                 with torch.no_grad():
                                     m.weight[filter] = m.weight[filter].add(lr * deltafilter)
-                                filtercount += 1
-                            clustercount += 1
                         allowedlayer += 1 
                     layer += 1
-        quit()
         return loss
