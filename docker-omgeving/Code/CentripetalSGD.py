@@ -13,6 +13,7 @@ import collections
 import copy
 from centripetalSGDTrainingEngine import CentripetalSGDTrainEngine
 from C_SGD import C_SGD
+from statistics import mean
 
 
 # Settings
@@ -20,11 +21,14 @@ ln.logger.setConsoleLevel('ERROR')  # Only show error log messages
 
 
 class CentripetalSGD():
-    def __init__(self, Pruning, logprune, clustermethod):
+    def __init__(self, Pruning, logprune, clustermethod, training_dataloader):
         self.Pruning = Pruning
         self.logprune = logprune
         self.prunedfilters = 0
         self.clustermethod = clustermethod
+        self.training_dataloader = training_dataloader
+        self.epoch = 0
+        self.batch = 0
        
         
     def __call__(self):
@@ -34,10 +38,12 @@ class CentripetalSGD():
         filtersperlayer = []
         filtersperlayerpruned = []
 
+        totalfilters = 0
         layer = 0
         for m in self.Pruning.params.network.modules():
             if isConvolutionLayer(m):
                 filtersperlayer.append(m.out_channels)
+                totalfilters += m.out_channels
                 layer +=1
 
         # Generate clusters
@@ -72,9 +78,75 @@ class CentripetalSGD():
             (0,                     burn_in),
             (self.Pruning.params.burnin,    step),
         )
-        centripetalTrainEngine = self.makeCentripetalSGDTrainEngine()
+
+        #centripetalTrainEngine = self.makeCentripetalSGDTrainEngine()
         #centripetalTrainEngine()
 
+        # TRAINER VAN HIER
+
+        self.logprune.info('Start training')
+        self.Pruning.params.network.train()
+
+        batch_subdivisions = self.Pruning.params.batch_size // self.Pruning.params.mini_batch_size
+
+        idx = 0
+        while True:
+            idx %= batch_subdivisions
+            loader = self.training_dataloader
+            for idx, data in enumerate(loader, idx+1):
+                # Batch Start
+
+                # Forward and backward on (mini-)batches
+                # process_batch
+                data, target = data
+                data = data.to(self.Pruning.device)
+
+                out = self.Pruning.params.network(data)
+                loss = self.Pruning.params.loss(out, target) / batch_subdivisions
+                loss.backward()
+
+                if idx % batch_subdivisions != 0:
+                    continue
+
+                # Optimizer step
+                self.batch += 1     # Should only be called after train, but this is easier to use self.batch in function
+                logstring = "Cluster retraining batch: " + str(self.batch)
+                self.logprune.info(logstring)
+
+                #self.train_batch()
+                self.Pruning.params.optimizer.step()
+                self.Pruning.params.optimizer.zero_grad()
+                self.Pruning.params.scheduler.step(self.batch, epoch=self.batch)
+
+                # Batch End
+
+            # Epoch End
+            self.epoch += 1
+
+            logstring = "Cluster retraining epoch: " + str(self.epoch)
+            self.logprune.info(logstring)
+
+            layer = 0
+            allowedlayer = 0
+            for m in self.Pruning.params.network.modules():
+                if isConvolutionLayer(m):
+                    if (self.Pruning.dependencies[layer][2] == True):
+                        clustercount = -1
+                        print(clusterlist)
+                        for cluster in clusterlist[allowedlayer]:
+                            clustercount += 1
+                            # Test to see if filters grew to eachoter
+                            print("One cluster:")
+                            filtercount = 0
+                            for filter in cluster:
+                                print(m.weight[filter])
+                                filtercount += 1
+                            break
+                    break
+
+        # TOT HIER
+
+        # Prune each all filters in each cluster except for the first indexed filter
         layer = 0
         allowedlayer = 0
         for m in self.Pruning.params.network.modules():
@@ -83,16 +155,6 @@ class CentripetalSGD():
                     clustercount = -1
                     for cluster in clusterlist[allowedlayer]:
                         clustercount += 1
-                        ## Test to see if filters grew to eachoter
-                        #print("One cluster:")
-                        #filtercount = 0
-                        #for filter in cluster:
-                        #    print(m.weight[filter])
-                        #    filtercount += 1
-                        #quit()
-
-                        print(clustercount)
-
                         if len(cluster) < 2:
                             continue
                         combineFilters(layer, cluster, self.Pruning)
@@ -123,6 +185,7 @@ class CentripetalSGD():
 
         logstring = "The final amount of filters after pruning is " +  str(finalcount)
         self.logprune.info(logstring)
+        self.prunedfilters = totalfilters - finalcount
         logstring = str(self.Pruning.manner) + " pruned " + str(self.prunedfilters) + " filters"
         self.logprune.info(logstring)
         self.logprune.info("Filters before pruning:")
@@ -161,16 +224,16 @@ class CentripetalSGD():
                 count += 1
                 if count == clusterAmount:
                     count = 0
-            logstring = "Clusters: " + str(clusters)
-            self.logprune.info(logstring)
+            #logstring = "Clusters: " + str(clusters)
+            #self.logprune.info(logstring)
             return clusters
         elif (self.clustermethod == 'kmeans'):
             centroids = []
             for i in range(clusterAmount):
                 centroids.append(m.weight.data[i].clone().detach())
             clusters = self.kmeansClustering(m, clusters, centroids)
-            logstring = "Clusters: " + str(clusters)
-            self.logprune.info(logstring)
+            #logstring = "Clusters: " + str(clusters)
+            #self.logprune.info(logstring)
             return clusters
         else:
             self.logprune.critical('The given clusteringmethod wasn\'t recognized, exiting.')

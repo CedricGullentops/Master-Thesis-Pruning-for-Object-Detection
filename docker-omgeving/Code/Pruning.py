@@ -63,10 +63,10 @@ class Pruning:
                 prune = L2prune(self, logprune)
                 prune()
             elif self.method == 'centripetalSGD_even':
-                prune = CentripetalSGD(self, logprune, 'even')
+                prune = CentripetalSGD(self, logprune, 'even', self.training_dataloader)
                 prune()
             elif self.method == 'centripetalSGD_kmeans':
-                prune = CentripetalSGD(self, logprune, 'kmeans')
+                prune = CentripetalSGD(self, logprune, 'kmeans', self.training_dataloader)
                 prune()
             elif self.method == 'geometricmedian':
                 prune = GeometricMedian(self, logprune)

@@ -54,9 +54,11 @@ class C_SGD(Optimizer):
                                 deltafilter -= gradientsum / clusterdimensionality
                                 deltafilter -= weight_decay * m.weight[filter]
                                 deltafilter += centripetal_force * ((filtersum / clusterdimensionality) - m.weight[filter])
-                                m.weight[filter].add(lr * deltafilter)
+                                with torch.no_grad():
+                                    m.weight[filter] = m.weight[filter].add(lr * deltafilter)
                                 filtercount += 1
                             clustercount += 1
                         allowedlayer += 1 
                     layer += 1
+        quit()
         return loss
