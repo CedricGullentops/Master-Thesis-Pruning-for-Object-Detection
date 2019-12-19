@@ -11,7 +11,6 @@ from utils import arg_nonzero_min, hardPruneFilters, softPruneFilters, deleteGra
 import logging
 import collections
 import copy
-from centripetalSGDTrainingEngine import CentripetalSGDTrainEngine
 from C_SGD import C_SGD
 from statistics import mean
 
@@ -61,9 +60,9 @@ class CentripetalSGD():
             self.Pruning.params.network.parameters(),
             clusterlist,
             self.Pruning,
-            lr = self.Pruning.params.lr,
+            lr = 0.03,
             weight_decay = self.Pruning.params.weight_decay,
-            centripetal_force = 0.01,
+            centripetal_force = 0.003,
         )
         burn_in = torch.optim.lr_scheduler.LambdaLR(
             self.Pruning.params.optimizer,
@@ -78,9 +77,6 @@ class CentripetalSGD():
             (0,                     burn_in),
             (self.Pruning.params.burnin,    step),
         )
-
-        #centripetalTrainEngine = self.makeCentripetalSGDTrainEngine()
-        #centripetalTrainEngine()
 
         # TRAINER VAN HIER
 
@@ -132,7 +128,6 @@ class CentripetalSGD():
                 if isConvolutionLayer(m):
                     if (self.Pruning.dependencies[layer][2] == True):
                         clustercount = -1
-                        print(clusterlist)
                         for cluster in clusterlist[allowedlayer]:
                             clustercount += 1
                             # Test to see if filters grew to eachoter
@@ -143,6 +138,17 @@ class CentripetalSGD():
                                 filtercount += 1
                             break
                     break
+            if self.epoch == 100:
+                self.Pruning.params.optimizer = C_SGD(
+                self.Pruning.params.network.parameters(),
+                clusterlist,
+                self.Pruning,
+                lr = 0.003,
+                weight_decay = self.Pruning.params.weight_decay,
+                centripetal_force = 0.003,
+            )
+            if self.epoch == 110:
+                break
 
         # TOT HIER
 
@@ -192,15 +198,7 @@ class CentripetalSGD():
         self.logprune.info(filtersperlayer)
         self.logprune.info("Filters after pruning:")
         self.logprune.info(filtersperlayerpruned)
-        quit()
 
-    def makeCentripetalSGDTrainEngine(self):
-        eng = CentripetalSGDTrainEngine(
-            self.Pruning.params, self.Pruning.training_dataloader,
-            device=self.Pruning.device,
-            # visdom=self.visdom, plot_rate=self.visdom_rate, 
-        )
-        return eng
 
     def clusterInLayer(self, layer):
         count = 0

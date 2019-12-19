@@ -33,9 +33,11 @@ class FLIRDataset(ln.models.BramboxDataset):
         - params.saturation (float): Saturation change percentage
         - params.value (float): Value change percentage
     """
-    def __init__(self, anno_file, params, augment, **kwargs):
+    def __init__(self, anno_file, params, augment, ignore=False, **kwargs):
         annos = bb.io.load('pandas', anno_file, **kwargs)
-        #annos.loc[annos.height < 30, 'ignore'] = True
+        if ignore:
+            annos.loc[annos.occluded > 1, 'ignore'] = True
+            #annos.loc[annos.height < 30, 'ignore'] = True
 
         # Data transformation pipeline
         lb  = ln.data.transform.Letterbox(dataset=self)
