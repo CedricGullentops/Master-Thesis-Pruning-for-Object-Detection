@@ -15,6 +15,9 @@ class C_SGD(Optimizer):
             raise ValueError("Invalid weight_decay value: {}".format(weight_decay))
         if centripetal_force < 0.0:
             raise ValueError("Invalid centripetal_force value: {}".format(centripetal_force))
+        self.lr = lr
+        self.weight_decay = weight_decay
+        self.centripetal_force = centripetal_force
 
         defaults = dict(lr=lr, weight_decay=weight_decay, centripetal_force=centripetal_force)
         super(C_SGD, self).__init__(params, defaults)
@@ -25,35 +28,38 @@ class C_SGD(Optimizer):
         if closure is not None:
             loss = closure()
 
-        for group in self.param_groups:
-            weight_decay = group['weight_decay']
-            centripetal_force = group['centripetal_force']
-            lr = group['lr']
+        layer = 0
+        allowedlayer = 0
+        for m in self.Pruning.params.network.modules():
+            if isConvolutionLayer(m):
+                if (self.Pruning.dependencies[layer][2] == True):
+                    for cluster in self.clusterlist[allowedlayer]:
+                        if m.weight.grad is None:
+                            continue
 
-            layer = 0
-            allowedlayer = 0
-            for m in self.Pruning.params.network.modules():
-                if isConvolutionLayer(m):
-                    if (self.Pruning.dependencies[layer][2] == True):
-                        for cluster in self.clusterlist[allowedlayer]:
-                            if m.weight.grad is None:
-                                continue
+                        clusterdimensionality = 0
+                        filtersum = torch.zeros([m.weight.data.shape[1], m.weight.data.shape[2], m.weight.data.shape[3]], device=self.Pruning.device)
+                        gradientsum = torch.zeros([m.weight.data.shape[1], m.weight.data.shape[2], m.weight.data.shape[3]], device=self.Pruning.device)
+                        for filter in cluster:
+                            clusterdimensionality += m.weight.shape[1]*m.weight.shape[2]*m.weight.shape[3]
+                            filtersum += m.weight[filter]
+                            gradientsum += m.weight.grad[filter]
 
-                            clusterdimensionality = 0
-                            filtersum = torch.zeros([m.weight.data.shape[1], m.weight.data.shape[2], m.weight.data.shape[3]], device=self.Pruning.device)
-                            gradientsum = torch.zeros([m.weight.data.shape[1], m.weight.data.shape[2], m.weight.data.shape[3]], device=self.Pruning.device)
-                            for filter in cluster:
-                                clusterdimensionality += m.weight.shape[1]*m.weight.shape[2]*m.weight.shape[3]
-                                filtersum += m.weight[filter]
-                                gradientsum += m.weight.grad[filter]
-                            
-                            for filter in cluster:
-                                deltafilter = torch.zeros([m.weight.data.shape[1], m.weight.data.shape[2], m.weight.data.shape[3]], device=self.Pruning.device)
-                                deltafilter -= gradientsum / clusterdimensionality
-                                deltafilter -= weight_decay * m.weight[filter]
-                                deltafilter += centripetal_force * ((filtersum / clusterdimensionality) - m.weight[filter])
-                                with torch.no_grad():
-                                    m.weight[filter] = m.weight[filter].add(lr * deltafilter)
-                        allowedlayer += 1 
-                    layer += 1
+                        for filter in cluster:
+                            #print("Filter before: ", m.weight[filter])
+                            deltafilter = torch.zeros([m.weight.data.shape[1], m.weight.data.shape[2], m.weight.data.shape[3]], device=self.Pruning.device)
+                            #print("Deltafilter, initialised: ", deltafilter)
+                            deltafilter -= gradientsum / clusterdimensionality
+                            #print("Deltafilter, first term: ", deltafilter)
+                            deltafilter -= self.weight_decay * m.weight[filter]
+                            #print("Deltafilter, second term: ", deltafilter)
+                            deltafilter += self.centripetal_force * ((filtersum / clusterdimensionality) - m.weight[filter])
+                            #print("Deltafilter, third term: ", deltafilter)
+                            #print("Filter added: ", m.weight[filter].add(lr * deltafilter))
+                            with torch.no_grad():
+                                m.weight[filter] = m.weight[filter].add(self.lr * deltafilter)
+                            #print("Filter after: ", m.weight[filter])
+                            #quit()
+                    allowedlayer += 1 
+                layer += 1
         return loss
