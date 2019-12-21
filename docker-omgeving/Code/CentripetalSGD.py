@@ -13,6 +13,7 @@ import collections
 import copy
 from C_SGD import C_SGD
 from statistics import mean
+import math
 
 
 # Settings
@@ -122,6 +123,8 @@ class CentripetalSGD():
             logstring = "Cluster retraining epoch: " + str(self.epoch)
             self.logprune.info(logstring)
 
+            # Test to see if filters grew to eachoter by calculating chi
+            chi = 0
             layer = 0
             allowedlayer = 0
             for m in self.Pruning.params.network.modules():
@@ -130,24 +133,22 @@ class CentripetalSGD():
                         clustercount = -1
                         for cluster in clusterlist[allowedlayer]:
                             clustercount += 1
-                            # Test to see if filters grew to eachoter
-                            print("One cluster:")
-                            filtercount = 0
+                            
+                            clusterdimensionality = len(cluster)
+                            filtersum = torch.zeros([m.weight.data.shape[1], m.weight.data.shape[2], m.weight.data.shape[3]], device=self.Pruning.device)
                             for filter in cluster:
-                                print(m.weight[filter])
-                                filtercount += 1
+                                filtersum += m.weight[filter]
+                            filtersum = filtersum / clusterdimensionality
+
+                            for filter in cluster:
+                                chi += (m.weight[filter] - filtersum).pow(2).sum(1).sum(1).sum(0) / filtersum.shape[0]*filtersum.shape[1]*filtersum.shape[2]
                             break
                     break
-            if self.epoch == 100:
-                self.Pruning.params.optimizer = C_SGD(
-                self.Pruning.params.network.parameters(),
-                clusterlist,
-                self.Pruning,
-                lr = 0.003,
-                weight_decay = self.Pruning.params.weight_decay,
-                centripetal_force = 0.003,
-            )
-            if self.epoch == 110:
+            
+            logstring = "Log10(chi) of epoch " + str(self.epoch) + " is: " + str(math.log10(chi))
+            self.logprune.info(logstring)
+
+            if self.epoch == 50:
                 break
 
         # TOT HIER

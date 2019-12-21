@@ -37,29 +37,20 @@ class C_SGD(Optimizer):
                         if m.weight.grad is None:
                             continue
 
-                        clusterdimensionality = 0
+                        clusterdimensionality = len(cluster)
                         filtersum = torch.zeros([m.weight.data.shape[1], m.weight.data.shape[2], m.weight.data.shape[3]], device=self.Pruning.device)
                         gradientsum = torch.zeros([m.weight.data.shape[1], m.weight.data.shape[2], m.weight.data.shape[3]], device=self.Pruning.device)
                         for filter in cluster:
-                            clusterdimensionality += m.weight.shape[1]*m.weight.shape[2]*m.weight.shape[3]
                             filtersum += m.weight[filter]
                             gradientsum += m.weight.grad[filter]
 
                         for filter in cluster:
-                            #print("Filter before: ", m.weight[filter])
                             deltafilter = torch.zeros([m.weight.data.shape[1], m.weight.data.shape[2], m.weight.data.shape[3]], device=self.Pruning.device)
-                            #print("Deltafilter, initialised: ", deltafilter)
                             deltafilter -= gradientsum / clusterdimensionality
-                            #print("Deltafilter, first term: ", deltafilter)
                             deltafilter -= self.weight_decay * m.weight[filter]
-                            #print("Deltafilter, second term: ", deltafilter)
                             deltafilter += self.centripetal_force * ((filtersum / clusterdimensionality) - m.weight[filter])
-                            #print("Deltafilter, third term: ", deltafilter)
-                            #print("Filter added: ", m.weight[filter].add(lr * deltafilter))
                             with torch.no_grad():
                                 m.weight[filter] = m.weight[filter].add(self.lr * deltafilter)
-                            #print("Filter after: ", m.weight[filter])
-                            #quit()
                     allowedlayer += 1 
                 layer += 1
         return loss
