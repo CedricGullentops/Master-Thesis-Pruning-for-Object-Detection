@@ -152,13 +152,9 @@ def combineFilters(layer, rccluster, Pruning):
     cluster = sorted(cluster, reverse=True)
 
     prunelist = []
-    prunefeaturemaplist = []
     # Find the filters and feature maps to hardprune and put them in a list
     for filter in cluster:
         prunelist.append((layer, filter))
-        for dependency in Pruning.dependencies[layer][1]:
-            prunetuple = (dependency, filter)
-            prunefeaturemaplist.append(prunetuple)   
 
     # Put all feature map filters as a reference in a list
     featuremaplist = []
@@ -170,7 +166,6 @@ def combineFilters(layer, rccluster, Pruning):
 
     # Prune these feature maps and filters
     combineFeatureMaps(Pruning, keptfilter, featuremaplist)
-    pruneFeatureMaps(Pruning, prunefeaturemaplist)
     hardPruneFilters(Pruning, prunelist)
     return
 

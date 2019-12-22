@@ -153,7 +153,7 @@ class CentripetalSGD():
 
         # TOT HIER
 
-        # Prune each all filters in each cluster except for the first indexed filter
+        # Prune all filters in each cluster except for the first indexed filter
         layer = 0
         allowedlayer = 0
         for m in self.Pruning.params.network.modules():
