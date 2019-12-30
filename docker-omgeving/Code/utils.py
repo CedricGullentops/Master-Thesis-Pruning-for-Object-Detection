@@ -30,13 +30,25 @@ def hardPruneFilters(Pruning, prunelist):
                 if isBatchNormalizationLayer(m):
                     m.num_features -= 1
                     if m.running_mean is not None:
-                        m.running_mean = nn.Parameter(torch.cat((m.running_mean[:filter[1]], m.running_mean[filter[1]+1:]))).detach()
+                        buffer = torch.cat((m.running_mean[:filter[1]], m.running_mean[filter[1]+1:]))
+                        del m.running_mean
+                        m.running_mean = nn.Parameter(buffer).detach()
+                        del buffer
                     if m.running_var is not None:
-                        m.running_var = nn.Parameter(torch.cat((m.running_var[:filter[1]], m.running_var[filter[1]+1:]))).detach()
+                        buffer = torch.cat((m.running_var[:filter[1]], m.running_var[filter[1]+1:]))
+                        del m.running_var
+                        m.running_var = nn.Parameter(buffer).detach()
+                        del buffer
                     if m.weight is not None:
-                        m.weight = nn.Parameter(torch.cat((m.weight[:filter[1]], m.weight[filter[1]+1:])))
+                        buffer = torch.cat((m.weight[:filter[1]], m.weight[filter[1]+1:]))
+                        del m.weight
+                        m.weight = nn.Parameter(buffer)
+                        del buffer
                     if m.bias.data is not None:
-                        m.bias = nn.Parameter(torch.cat((m.bias[:filter[1]], m.bias[filter[1]+1:])))
+                        buffer = torch.cat((m.bias[:filter[1]], m.bias[filter[1]+1:]))
+                        del m.bias
+                        m.bias = nn.Parameter(buffer)
+                        del buffer
                     break
                 else:
                     break
@@ -46,9 +58,15 @@ def hardPruneFilters(Pruning, prunelist):
                     continue
 
                 if m.bias is not None:
-                    m.bias = nn.Parameter(torch.cat((m.bias[:filter[1]], m.bias[filter[1]+1:])))
+                    buffer = torch.cat((m.bias[:filter[1]], m.bias[filter[1]+1:]))
+                    del m.bias
+                    m.bias = nn.Parameter(buffer)
+                    del buffer
 
-                m.weight = nn.Parameter(torch.cat((m.weight[:filter[1]], m.weight[filter[1]+1:])))
+                buffer = torch.cat((m.weight[:filter[1]], m.weight[filter[1]+1:]))
+                del m.weight
+                m.weight = nn.Parameter(buffer)
+                del buffer
                 m.out_channels -= 1
 
                 if len(Pruning.dependencies[layer][1]) != 0:
@@ -75,7 +93,10 @@ def pruneFeatureMaps(Pruning, prunelist):
                 if layer != featuremap[0]:
                     layer += 1
                     continue
-                m.weight = nn.Parameter(torch.cat((m.weight[:,:featuremap[1]], m.weight[:,featuremap[1]+1:]), 1))
+                buffer = torch.cat((m.weight[:,:featuremap[1]], m.weight[:,featuremap[1]+1:]), 1)
+                del m.weight
+                m.weight = nn.Parameter(buffer)
+                del buffer
                 m.in_channels -= 1
                 break
     return
@@ -112,7 +133,9 @@ def softPruneFilters(Pruning, model, prunelist):
 
                 zeros = torch.zeros([1,m.weight.data.shape[1],m.weight.data.shape[2], m.weight.data.shape[3]], device=Pruning.device)
                 buffer = torch.cat((m.weight.data[:filter[1]], zeros))
-                m.weight = nn.Parameter(torch.cat((buffer, m.weight.data[filter[1]+1:])))
+                secondbuffer = torch.cat((buffer, m.weight.data[filter[1]+1:]))
+                m.weight = nn.Parameter(secondbuffer)
+                del buffer, secondbuffer, zeros
                 done = True
     return
             
@@ -167,6 +190,8 @@ def combineFilters(layer, rccluster, Pruning):
     # Prune these feature maps and filters
     combineFeatureMaps(Pruning, keptfilter, featuremaplist)
     hardPruneFilters(Pruning, prunelist)
+
+    del cluster, keptfilter, prunelist, featuremaplist
     return
 
 
