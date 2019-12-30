@@ -1,7 +1,7 @@
 
 docker-omgeving/Code/data/*
 docker-omgeving/Code/backup/*
-docker-omgeving/Code/pruned/*
+docker-omgeving/Code/prunedModels/*
 Jupyter Notebook/logs/*
 
 __pycache__
