@@ -58,11 +58,9 @@ class Prune():
                                     del locallayer.bias
                                     locallayer.bias = nn.Parameter(new_state_dict[param_tensor])
                                 elif text[5] == 'running_mean':
-                                    del locallayer.running_mean
-                                    locallayer.running_mean = new_state_dict[param_tensor].clone().detach()
+                                    locallayer.register_buffer('running_mean', new_state_dict[param_tensor])
                                 elif text[5] == 'running_var':
-                                    del locallayer.running_var
-                                    locallayer.running_var = new_state_dict[param_tensor].clone().detach()
+                                    locallayer.register_buffer('running_var', new_state_dict[param_tensor])
 
                         elif isinstance(layer, torch.nn.Conv2d):
                             if text[3] == 'weight':
@@ -75,7 +73,7 @@ class Prune():
                                 del layer.bias
                                 layer.bias = nn.Parameter(new_state_dict[param_tensor])
 
-        for param_tensor in self.network.state_dict():
-            print(param_tensor, "\t", self.network.state_dict()[param_tensor].size())               
+        #for param_tensor in self.network.state_dict():
+        #    print(param_tensor, "\t", self.network.state_dict()[param_tensor].size())               
         
         self.network.load(filename)
