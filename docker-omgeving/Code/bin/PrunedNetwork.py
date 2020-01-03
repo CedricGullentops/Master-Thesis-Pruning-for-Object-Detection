@@ -7,6 +7,9 @@ class Prune():
     def __init__(self, network):
         self.network = network
 
+    def __call__(self, *args):
+        return self.network(*args)
+
     def __getattr__(self, name):
         return getattr(self.network, name)
 
